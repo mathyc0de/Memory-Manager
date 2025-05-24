@@ -63,7 +63,6 @@ class Escalonador:
     def loteria(self):
         pass
     def cfs(self):
-        print(self.frac, self.infos)
         tree = RBTree()
         waiting = self.processes[:]
 
@@ -95,14 +94,13 @@ class Escalonador:
 
                 if self.clock % self.frac == 0:
                     old_item = execprocess
-                    print(old_item)
                     tree.pop(min)
 
             if not isdone:
                 tree.insert((old_item.vruntime, old_item.pid), old_item)
 
         self.showResult()
-        
+
     def showResult(self):
         with open("result.txt", "w") as result:
             for i in self.processes:
