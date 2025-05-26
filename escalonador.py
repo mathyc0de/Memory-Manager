@@ -82,7 +82,7 @@ class Escalonador:
             while count % self.frac != 0 or count == 0:
                 execprocess = tree[min]
                 execprocess.alreadyexec += 1
-                execprocess.vruntime += 1 * (1 + (execprocess.priority / 100))
+                execprocess.vruntime += execprocess.priority * 0.1
                 self.clock += 1
                 count += 1
 
@@ -100,6 +100,11 @@ class Escalonador:
                 tree.insert((old_item.vruntime, old_item.pid), old_item)
 
         self.showResult()
+        self.infos = []
+        self.alg = None
+        self.frac = None
+        self.clock = 0
+        self.processes = []
 
     def showResult(self):
         with open("result.txt", "w") as result:
