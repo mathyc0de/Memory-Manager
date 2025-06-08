@@ -37,7 +37,8 @@ O arquivo `entradaEscalonador.txt` deve seguir o seguinte formato:
 
 ```
 
-<algoritmo>|<quantum ou fatia> <tempo de chegada>|<PID>|\<tempo de execução>|<prioridade>
+<algoritmo>|<quantum ou fatia>
+<tempo de chegada>|<PID>|\<tempo de execução>|<prioridade>
 ...
 
 ```
@@ -53,7 +54,7 @@ CFS|10
 
 ````
 
-## ▶️ Como executar
+## Como executar
 
 1. Instale o pacote `bintrees` (necessário para o uso da árvore Rubro-Negra):
 
@@ -69,7 +70,7 @@ python3 escalonador.py
 
 3. Verifique o arquivo `result.txt` para os resultados do escalonamento.
 
-## 📖 Licença
+## Licença
 
 Este projeto é livre para fins educacionais. Para outros usos, consulte o autor.
 
