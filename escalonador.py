@@ -63,7 +63,7 @@ class Escalonador:                  #Criação do objeto Escalonador
             self.cfs()
 
     def alternanciaCircular(self):
-        
+            
         # *OBS End = Tempo Total e Waitingtime = Tempo que ficou sem ussar a CPU no estado "Pronto"
 
         print("                     Alternância Circular") # Printa o nome do escalonamento
@@ -77,6 +77,7 @@ class Escalonador:                  #Criação do objeto Escalonador
         print()
         print("Ordem de Processos utilizando a CPU:")
         print()
+
         while processos_prontos: #Equanto houver um processo pronto para a CPU segue a operação
             
             processo_atual = processos_prontos.pop(0)# Entende quem é o processo atual e remove ele da lista de prontos
@@ -92,6 +93,9 @@ class Escalonador:                  #Criação do objeto Escalonador
                 self.time += self.frac # Registra esse ato ao tempo
                 processo_atual.alreadyexec += self.frac # Registra em quanto tempo o Processo ussou a CPU
                 
+                for m in self.processes: # Busca novos processos que estejam prontos para ussas a CPU e que são diferentes do processo atual
+                    if m.done is None and self.time >= m.beggining and m not in processos_prontos and m != processo_atual:
+                        processos_prontos.append(m)
 
                 if self.tempoex[indice] != 0: # Logo apos, verifica se o processo nao terminou
                     processos_prontos.append(processo_atual)# Caso não tenha adiciona o mesmo novamente a lista de processos ...
@@ -121,6 +125,7 @@ class Escalonador:                  #Criação do objeto Escalonador
                 print(l)
         # Mostra o resultado 
         self.showResult()
+
 
     def prioridade(self):
 
