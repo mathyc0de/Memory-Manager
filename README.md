@@ -72,6 +72,8 @@ python3 escalonador.py
 
 ## Licença
 
+Este projeto foi desenvolvido para a disciplina de Sistemas Operacionais no curso de Engenharia de Computação - FURG, ministrada pelo Professor Pedro de Botelho Marcos.
+
 Este projeto é livre para fins educacionais. Para outros usos, consulte o autor.
 
 ---
