@@ -1,15 +1,10 @@
-Start: 00 | Pid: 00 | Exectime: 0090 | Priority: 017 | Vruntime: 153.00 | End: 0470 | Waitingtime: 0380
-Start: 01 | Pid: 01 | Exectime: 0080 | Priority: 070 | Vruntime: 560.00 | End: 0770 | Waitingtime: 0689
-Start: 02 | Pid: 02 | Exectime: 0060 | Priority: 071 | Vruntime: 426.00 | End: 0690 | Waitingtime: 0628
-Start: 03 | Pid: 03 | Exectime: 0030 | Priority: 053 | Vruntime: 159.00 | End: 0440 | Waitingtime: 0407
-Start: 04 | Pid: 04 | Exectime: 0020 | Priority: 066 | Vruntime: 132.00 | End: 0300 | Waitingtime: 0276
-Start: 05 | Pid: 05 | Exectime: 0030 | Priority: 068 | Vruntime: 204.00 | End: 0460 | Waitingtime: 0425
-Start: 06 | Pid: 06 | Exectime: 0030 | Priority: 069 | Vruntime: 207.00 | End: 0490 | Waitingtime: 0454
-Start: 07 | Pid: 07 | Exectime: 0080 | Priority: 051 | Vruntime: 408.00 | End: 0710 | Waitingtime: 0623
-Start: 08 | Pid: 08 | Exectime: 0070 | Priority: 010 | Vruntime: 070.00 | End: 0290 | Waitingtime: 0212
-Start: 09 | Pid: 09 | Exectime: 0090 | Priority: 089 | Vruntime: 801.00 | End: 0830 | Waitingtime: 0731
-Start: 10 | Pid: 10 | Exectime: 0020 | Priority: 002 | Vruntime: 004.00 | End: 0160 | Waitingtime: 0130
-Start: 11 | Pid: 11 | Exectime: 0050 | Priority: 046 | Vruntime: 230.00 | End: 0550 | Waitingtime: 0489
-Start: 12 | Pid: 12 | Exectime: 0080 | Priority: 098 | Vruntime: 784.00 | End: 0820 | Waitingtime: 0728
-Start: 13 | Pid: 13 | Exectime: 0040 | Priority: 052 | Vruntime: 208.00 | End: 0530 | Waitingtime: 0477
-Start: 14 | Pid: 14 | Exectime: 0060 | Priority: 094 | Vruntime: 564.00 | End: 0760 | Waitingtime: 0686
+Start: 00 | Pid: 00 | Exectime: 0016 | Priority: 060 | End: 0054 | Waitingtime: 0038
+Start: 01 | Pid: 01 | Exectime: 0008 | Priority: 005 | End: 0106 | Waitingtime: 0097
+Start: 02 | Pid: 02 | Exectime: 0016 | Priority: 052 | End: 0066 | Waitingtime: 0048
+Start: 03 | Pid: 03 | Exectime: 0004 | Priority: 092 | End: 0036 | Waitingtime: 0029
+Start: 04 | Pid: 04 | Exectime: 0012 | Priority: 024 | End: 0094 | Waitingtime: 0078
+Start: 05 | Pid: 05 | Exectime: 0012 | Priority: 032 | End: 0064 | Waitingtime: 0047
+Start: 06 | Pid: 06 | Exectime: 0014 | Priority: 059 | End: 0100 | Waitingtime: 0080
+Start: 07 | Pid: 07 | Exectime: 0004 | Priority: 064 | End: 0030 | Waitingtime: 0019
+Start: 08 | Pid: 08 | Exectime: 0010 | Priority: 036 | End: 0096 | Waitingtime: 0078
+Start: 09 | Pid: 09 | Exectime: 0010 | Priority: 025 | End: 0092 | Waitingtime: 0073

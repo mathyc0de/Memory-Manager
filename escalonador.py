@@ -62,7 +62,67 @@ class Escalonador:
     def prioridade(self):
         pass
     def loteria(self):
-        pass
+
+        print("== LOTERIA ==")
+
+        # Cria a lista de processos prontos e em espera
+        waiting = self.processes[:] # copia da self.processes
+        ready = []
+
+        # Verifica se tem algum processo que pode se tornar pronto
+        while waiting or ready:
+            for w_process in waiting[:]:
+                if w_process.beggining <= self.clock: # Se está no momento do processo executa
+                    print(f"Processo pronto: {w_process.pid}")
+                    ready.append(w_process)
+                    waiting.remove(w_process) 
+
+            # Lida com tempo ocioso da CPU 
+            if not ready:
+                self.clock += 1
+                continue
+
+            # Soma todos os tickets dos processos prontos
+            total_tickets = 0
+            for process in ready[:]:
+                total_tickets += process.priority
+            
+            # Se tiver tickets / processos prontos
+            if total_tickets > 0:
+
+                # Sorteia o número de acordo com a quantidade de bilhetes
+                winning_ticket = random.randint(1, total_tickets)
+                ticket_count = 0
+
+                # Acha o processo com o bilhete sorteado
+                for process in ready:
+                    ticket_count += process.priority
+                    if ticket_count >= winning_ticket:
+                        winner_process = process
+                        break
+                
+                # Print para mostrar qual processo foi sorteado
+                print(f"Processo sorteado com PID: {winner_process.pid}| clock: {self.clock} \nTempo restante: {winner_process.exectime - winner_process.alreadyexec}")
+                        
+                # Executa o processo vencedor
+                for _ in range(self.frac):
+                    self.clock += 1
+                    winner_process.alreadyexec += 1
+
+                    # Se o processo for finalizado
+                    if winner_process.alreadyexec == winner_process.exectime:
+                        winner_process.done = self.clock
+                        ready.remove(winner_process)
+                        print(f"Clock: {self.clock:03d} | PROCESSO {winner_process.pid} FINALIZADO! | Q_BILHETES {winner_process.priority}")
+                        break
+            
+            else:
+                self.clock += 1
+
+        # Mostra o resultado 
+        self.showResult()
+
+
     def cfs(self):
         print("== CFS ==")
         tree = RBTree()                 #Cria Árvore Rubro Negra
