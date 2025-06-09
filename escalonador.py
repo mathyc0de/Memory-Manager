@@ -104,7 +104,7 @@ class Escalonador:
             # Incrementa a prioridade para evitar monopólio da cpu.
             highest_priority.dynamic_priority += 10
             
-
+        self.showResult() # Escreve o resultado no .txt de saída.
 
     def loteria(self):
 
