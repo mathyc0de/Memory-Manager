@@ -1,4 +1,6 @@
-from bintrees import RBTree
+from bintrees   import RBTree
+from random     import randint
+
 class Process:  #Criação do objeto Process
     def __init__(self, beggining, pid, exectime, priority):
         self.beggining = beggining
@@ -91,7 +93,7 @@ class Escalonador:
             if total_tickets > 0:
 
                 # Sorteia o número de acordo com a quantidade de bilhetes
-                winning_ticket = random.randint(1, total_tickets)
+                winning_ticket = randint(1, total_tickets)
                 ticket_count = 0
 
                 # Acha o processo com o bilhete sorteado
@@ -124,7 +126,9 @@ class Escalonador:
 
 
     def cfs(self):
+
         print("== CFS ==")
+
         tree = RBTree()                 #Cria Árvore Rubro Negra
         waiting = self.processes[:]     #Cria uma lista que é uma cópia da lista self.processes
 
