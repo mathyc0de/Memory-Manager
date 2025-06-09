@@ -43,12 +43,14 @@ class Escalonador:
         self.alg, self.frac = self.infos[0].split("|") #Separa a primeira linha guardando as informações do algoritmo e da fração de CPU
         self.frac = int(self.frac)
         self.infos.pop(0) #Remove a primeira linha das informações
+        self.tempoex = [] # Cria uma lista vazia para armazenar o tempo que cada processo precisa na CPU
 
         for i in range(len(self.infos)): #Itera sobre cada processo da entrada
             splitting = list(map(int, self.infos[i].split("|"))) #Separa as informações do processo em uma lista
 
             newprocess = Process(*splitting) #Cria uma variável newprocess da classe Process e utiliza as informações da entrada
             self.processes.append(newprocess) #Isere o novo processo na lista de processos do escalonador
+            self.tempoex.append(newprocess.exectime) # Insere o tempo de execução desse novo Processo na lista tempo de execução
 
         #Utiliza o algoritmo solicitado
         if self.alg == "alternanciaCircular":
@@ -61,7 +63,64 @@ class Escalonador:
             self.cfs()
 
     def alternanciaCircular(self):
-        pass
+        
+        # *OBS End = Tempo Total e Waitingtime = Tempo que ficou sem ussar a CPU no estado "Pronto"
+
+        print("                     Alternância Circular") # Printa o nome do escalonamento
+        processos_prontos = [] # Lista com Processos prontos para executar
+        self.time = 0 #tempo
+
+        for a in self.processes: # Percorre toos os Processos
+            if self.time >= a.beggining: # Verifica se o processo existe
+                processos_prontos.append(a) # Caso exista adiciona o mesmo a uma lista de processos prontos...
+                                            # ...para ussar a CPU
+        print()
+        print("Ordem de Processos utilizando a CPU:")
+        print()
+        while processos_prontos: #Equanto houver um processo pronto para a CPU segue a operação
+            
+            processo_atual = processos_prontos.pop(0)# Entende quem é o processo atual e remove ele da lista de prontos
+            indice = self.processes.index(processo_atual) # Pega seu indice para calcular seu tempo de execução corretamente
+            
+
+            if processo_atual.exectime >= self.frac: # Verifica qual o caso do processo, se cobre todo o tempo...
+                                                     # ... fornecido pela CPU
+                
+                print(f"Time {self.time:04d} | PID {processo_atual.pid:02d} esta usando a CPU | Tempo restante: {processo_atual.exectime - processo_atual.alreadyexec}")
+                print("------------------------------------------------------------------------")
+                self.tempoex[indice]-= self.frac # Subtrai o tempo de execução necessario daquele processo, pois ele ussou a CPU
+                self.time += self.frac # Registra esse ato ao tempo
+                processo_atual.alreadyexec += self.frac # Registra em quanto tempo o Processo ussou a CPU
+                
+
+                if self.tempoex[indice] != 0: # Logo apos, verifica se o processo nao terminou
+                    processos_prontos.append(processo_atual)# Caso não tenha adiciona o mesmo novamente a lista de processos ...
+                                                            # ...que seram executados pela CPU
+
+                else: # Caso contrario diz que o processo terminou, e define  o tempo total que levou para terminar.
+                    processo_atual.done = self.time # Define  o tempo total que levou para terminar e que terminou.
+
+            else: # Caso o Processo leve menos tempo que a CPU
+                tempo_restante = self.tempoex[indice] # Define o tempo que falta
+    
+                print(f"Time {self.time:04d} | PID {processo_atual.pid:02d} esta usando a CPU | Tempo restante: {processo_atual.exectime - processo_atual.alreadyexec}")
+                print("------------------------------------------------------------------------")
+
+                self.time += tempo_restante #Registra essa acão do Processo  ao ussar  a CPU ao tempo
+                processo_atual.alreadyexec += tempo_restante # Registra esse tempo de usso na CPU
+                self.tempoex[indice] = 0 # Zero o tempo preciso para executar pois ja ussou o que precisava
+                processo_atual.done = self.time # Soma essa diferença ao tempo que ficou na CPU
+
+                
+
+            for u in self.processes:# Busca em todos os processos se algum esta pronto para ussar a CPU
+                if u.done == None and (self.time >= u.beggining) and (u not in processos_prontos): #Verifica se podem entrar na lista dos Prontos
+                    processos_prontos.append(u)# Caso possa entrar na lista de prontos para ussar a CPU, adiciona o mesmo á fila
+                    
+        for l in self.processes:# Printa cada Processo após a Execução
+                print(l)
+        # Mostra o resultado 
+        self.showResult()
     def prioridade(self):
 
         print("== PRIORIDADE ==")
