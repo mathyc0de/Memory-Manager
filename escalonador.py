@@ -1,16 +1,16 @@
 from bintrees   import RBTree
 from random     import randint
 
-class Process:  #Criação do objeto Process
+class Process:                              #Criação do objeto Process
     def __init__(self, beggining, pid, exectime, priority):
-        self.beggining = beggining
-        self.pid = pid
-        self.exectime = exectime
-        self.priority = priority
-        self.alreadyexec = 0
-        self.done = None
-        self.vruntime = None
-        self.dynamic_priority = priority ## Usado somente no algoritmo de prioridade
+        self.beggining = beggining          # Momento de criação do processo
+        self.pid = pid                      # Id do processo
+        self.exectime = exectime            # Tempo necessário de execução para concluir o processo
+        self.priority = priority            # Prioridade ou número de bilhetes
+        self.alreadyexec = 0                # Quantidade de tempo já executada do processo
+        self.done = None                    # Variável de controle para definir se o processo já foi concluido
+        self.vruntime = None                # Tempo de execução virtual - Utilizado apenas no algoritmo CFS
+        self.dynamic_priority = priority    # Usado somente no algoritmo de prioridade
 
     def __repr__(self): #Define a forma de representação do objeto
         if self.alreadyexec < self.exectime:
@@ -29,15 +29,15 @@ class Process:  #Criação do objeto Process
                 return (f'Start: {self.beggining:02} | Pid: {self.pid:02} | Exectime: {self.exectime:04} | '
                         f'Priority: {self.priority:03} | Vruntime: {self.vruntime:06.2f} | End: {self.done:04} | Waitingtime: {waitingtime:04}')
 
-class Escalonador:
-    def __init__(self, infos): #Criação do objeto Escalonador
-        self.infos = list(infos)
-        self.alg = None
-        self.frac = None
-        self.clock = 0
-        self.processes = []
+class Escalonador:                  #Criação do objeto Escalonador
+    def __init__(self, infos):      
+        self.infos = list(infos)    # Lista de informações brutas
+        self.alg = None             # Algoritmo selecionado pelo usuário
+        self.frac = None            # Fração da CPU que cada processo terá controle 
+        self.clock = 0              # Clock atual
+        self.processes = []         # Lista de processos
 
-        self.separate() #Chama o método de separar as informações
+        self.separate()             #Chama o método de separar as informações
 
     def separate(self):
         self.alg, self.frac = self.infos[0].split("|") #Separa a primeira linha guardando as informações do algoritmo e da fração de CPU
@@ -121,6 +121,7 @@ class Escalonador:
                 print(l)
         # Mostra o resultado 
         self.showResult()
+
     def prioridade(self):
 
         print("== PRIORIDADE ==")
@@ -225,7 +226,6 @@ class Escalonador:
 
         # Mostra o resultado 
         self.showResult()
-
 
     def cfs(self):
 
