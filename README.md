@@ -80,5 +80,5 @@ Desenvolvido por:
 [Felipe Fagundes Costa](https://github.com/FelipeFagundesCosta)
 [Pedro Martins Caurio](https://github.com/PedroCaurio)
 [Matheus Silveira](https://github.com/mathyc0de)
-[Gabriel Silva]()
+[Gabriel Silva](https://github.com/Foqueto)
 
