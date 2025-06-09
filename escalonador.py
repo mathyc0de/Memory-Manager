@@ -10,6 +10,7 @@ class Process:  #Criação do objeto Process
         self.alreadyexec = 0
         self.done = None
         self.vruntime = None
+        self.dynamic_priority = priority ## Usado somente no algoritmo de prioridade
 
     def __repr__(self): #Define a forma de representação do objeto
         if self.alreadyexec < self.exectime:
@@ -62,7 +63,49 @@ class Escalonador:
     def alternanciaCircular(self):
         pass
     def prioridade(self):
-        pass
+
+        print("== PRIORIDADE ==")
+        
+        #armazena os processos em uma variavel local
+        waiting: list[Process] = self.processes[:]
+        created = []
+
+        while waiting or created:
+            
+            # Verifica se existem novos processos prontos para execução
+            for process in waiting[:]:
+                if (process.beggining) <= self.clock:
+                    print(f"Processo criado | PID: {process.pid} | CLOCK: {self.clock} | PRIORIDADE: {process.priority} | TEMPO DE CPU {process.exectime}")
+                    created.append(process)
+                    waiting.remove(process)
+
+            # Caso não existam novos processos e os demais já foram finalizados, permanece ocioso
+            if not created:
+                self.clock += 1
+                continue
+            
+            # Obtém o processo com a maior prioridade
+            priorities = [process.dynamic_priority for process in created]
+            highest_priority: Process = created[priorities.index(min(priorities))] # Maior prioridade
+            print(f"Processo {highest_priority.pid} selecionado | tempo restante {highest_priority.exectime - highest_priority.alreadyexec} | prioridade dinâmica {highest_priority.dynamic_priority} | prioridade original {highest_priority.priority}.")
+
+            # Executa os processos
+            for _ in range(self.frac):
+                self.clock += 1
+                highest_priority.alreadyexec += 1
+
+                # Caso o processo tenha terminado seu tempo de execução, remove ele da lista dos processos prontos
+                if (highest_priority.alreadyexec == highest_priority.exectime):
+                    print(f"Processo finalizado | PID: {highest_priority.pid} | CLOCK: {self.clock}")
+                    created.remove(highest_priority)
+                    highest_priority.done = self.clock
+                    break
+            
+            # Incrementa a prioridade para evitar monopólio da cpu.
+            highest_priority.dynamic_priority += 10
+            
+
+
     def loteria(self):
 
         print("== LOTERIA ==")
