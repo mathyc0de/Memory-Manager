@@ -54,21 +54,51 @@ CFS|10
 
 ````
 
-## Como executar
+Este arquivo pode ser criado utilizando o script `geradorEntrada.py`, esse script é de autoria do Professor Pedro de Botelho Marcos.
+### Utilizando geradorEntrada.py
+1. Execute o programa com Python 3:
 
-1. Instale o pacote `bintrees` (necessário para o uso da árvore Rubro-Negra):
+```bash
+python3 geradorEntrada.py
+```
+2. O script irá solicitar entradas do usuário pelo terminal em que foi executado
+   
+    2.1 Informar o tipo de algoritmo que deseja utilizar
+   | Entrada |  Algoritmo |
+   |-------|-------|
+   | 1 | Alternância Circular |
+   | 2 | Prioridade |
+   | 3 | Loteria |
+   | 4 | CFS |
+   
+    2.2 Informar a fração da CPU que deseja que cada processo tenha por vez
+   
+    2.3 Informar o número de processos a serem criados
+3. Exemplo
+```bash
+Bem-vindo ao gerador de arquivos de entrada para o escalonador!
+Escolha o algoritmo: 1: alternancia circular, 2: prioridade, 3: loteria, 4: CFS
+4
+Informe a fracao de CPU que cada processo tera direito por vez
+10
+Informe o numero de processos a serem criados
+15
+````
+## Como executar
+1. Certifique-se de que o arquivo `entradaEscalonador.txt` está no mesmo diretório que o script `escalonador.py`
+2. Instale o pacote `bintrees` (necessário para o uso da árvore Rubro-Negra):
 
 ```bash
 pip install bintrees
 ````
-
-2. Execute o programa com Python 3:
+   
+3. Execute o programa com Python 3:
 
 ```bash
 python3 escalonador.py
 ```
 
-3. Verifique o arquivo `result.txt` para os resultados do escalonamento.
+4. Verifique o arquivo `result.txt` para os resultados do escalonamento.
 
 ## Licença
 
