@@ -281,12 +281,3 @@ class Escalonador:                  #Criação do objeto Escalonador
         with open("result.txt", "w") as result:
             for i in self.processes:
                 result.write(f'{repr(i)}\n')
-
-#Bloco principal
-if __name__ == "__main__":
-    with open("entradaEscalonador.txt", "r") as entry:  #Extrai informações da entrada
-        infos = []
-        for i in entry:
-            infos.append(i.strip())
-
-    Escalonador(infos) #Utiliza o escalonador com as informações extraidas
