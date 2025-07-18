@@ -1,66 +1,35 @@
 from bintrees   import RBTree
 from random     import randint
+from memoryManager import MemoryManager, Process
 
-class Process:                              #Criação do objeto Process
-    def __init__(self, beggining, pid, exectime, priority):
-        self.beggining = beggining          # Momento de criação do processo
-        self.pid = pid                      # Id do processo
-        self.exectime = exectime            # Tempo necessário de execução para concluir o processo
-        self.priority = priority            # Prioridade ou número de bilhetes
-        self.alreadyexec = 0                # Quantidade de tempo já executada do processo
-        self.done = None                    # Variável de controle para definir se o processo já foi concluido
-        self.vruntime = None                # Tempo de execução virtual - Utilizado apenas no algoritmo CFS
-        self.dynamic_priority = priority    # Usado somente no algoritmo de prioridade
-
-    def __repr__(self): #Define a forma de representação do objeto
-        if self.alreadyexec < self.exectime:
-            if self.vruntime is None:
-                return (f'Start: {self.beggining:02} | Pid: {self.pid:02} | Exectime: {self.exectime:04} | '
-                        f'Alreadyexec: {self.alreadyexec:03} | Priority: {self.priority:03}')
-            else:
-                return (f'Start: {self.beggining:02} | Pid: {self.pid:02} | Exectime: {self.exectime:04} | '
-                        f'Alreadyexec: {self.alreadyexec:03} | Priority: {self.priority:03} | Vruntime: {self.vruntime:06.2f}')
-        else:
-            waitingtime = self.done - self.beggining - self.exectime
-            if self.vruntime is None:
-                return (f'Start: {self.beggining:02} | Pid: {self.pid:02} | Exectime: {self.exectime:04} | '
-                        f'Priority: {self.priority:03} | End: {self.done:04} | Waitingtime: {waitingtime:04}')
-            else:
-                return (f'Start: {self.beggining:02} | Pid: {self.pid:02} | Exectime: {self.exectime:04} | '
-                        f'Priority: {self.priority:03} | Vruntime: {self.vruntime:06.2f} | End: {self.done:04} | Waitingtime: {waitingtime:04}')
 
 class Escalonador:                  #Criação do objeto Escalonador
-    def __init__(self, infos):      
-        self.infos = list(infos)    # Lista de informações brutas
-        self.alg = None             # Algoritmo selecionado pelo usuário
-        self.frac = None            # Fração da CPU que cada processo terá controle 
+    def __init__(self, alg: str, frac: int, infos: list):      
+        self.memoryManager = MemoryManager.fromList(infos)
+        infos.pop(0)
+        self.alg = alg         # Algoritmo selecionado pelo usuário
+        self.frac = frac            # Fração da CPU que cada processo terá controle 
         self.clock = 0              # Clock atual
         self.processes = []         # Lista de processos
+        self.separate(infos)             #Chama o método de separar as informações
 
-        self.separate()             #Chama o método de separar as informações
 
-    def separate(self):
-        self.alg, self.frac = self.infos[0].split("|") #Separa a primeira linha guardando as informações do algoritmo e da fração de CPU
-        self.frac = int(self.frac)
-        self.infos.pop(0) #Remove a primeira linha das informações
+    @staticmethod
+    def fromList(infos: list):
+        alg, frac = infos[0].split("|")[:2] #Separa a primeira linha guardando as informações do algoritmo e da fração de CPU
+        return Escalonador(alg, int(frac), infos)  #Cria um novo objeto Escalonador a partir de uma lista de informações
+
+    def separate(self, infos):
         self.tempoex = [] # Cria uma lista vazia para armazenar o tempo que cada processo precisa na CPU
+        for i in range(len(infos)): #Itera sobre cada processo da entrada
+            data =  infos[i].split("|")
+            splitting = list(map(int, data[:4])) #Separa as informações do processo em uma lista
 
-        for i in range(len(self.infos)): #Itera sobre cada processo da entrada
-            splitting = list(map(int, self.infos[i].split("|"))) #Separa as informações do processo em uma lista
-
-            newprocess = Process(*splitting) #Cria uma variável newprocess da classe Process e utiliza as informações da entrada
+            newprocess = Process(*splitting, memory_alloc=data[4], page_sequence=data[5]) #Cria uma variável newprocess da classe Process e utiliza as informações da entrada
             self.processes.append(newprocess) #Isere o novo processo na lista de processos do escalonador
             self.tempoex.append(newprocess.exectime) # Insere o tempo de execução desse novo Processo na lista tempo de execução
 
-        #Utiliza o algoritmo solicitado
-        if self.alg == "alternanciaCircular":
-            self.alternanciaCircular()
-        elif self.alg == "prioridade":
-            self.prioridade()
-        elif self.alg == "loteria":
-            self.loteria()
-        elif self.alg == "CFS":
-            self.cfs()
+    def start(self): getattr(self, self.alg)()
 
     def alternanciaCircular(self):
             
@@ -123,8 +92,6 @@ class Escalonador:                  #Criação do objeto Escalonador
                     
         for l in self.processes:# Printa cada Processo após a Execução
                 print(l)
-        # Mostra o resultado 
-        self.showResult()
 
 
     def prioridade(self):
@@ -168,8 +135,6 @@ class Escalonador:                  #Criação do objeto Escalonador
             
             # Incrementa a prioridade para evitar monopólio da cpu.
             highest_priority.dynamic_priority += 10
-            
-        self.showResult() # Escreve o resultado no .txt de saída.
 
     def loteria(self):
 
@@ -229,10 +194,8 @@ class Escalonador:                  #Criação do objeto Escalonador
             else:
                 self.clock += 1
 
-        # Mostra o resultado 
-        self.showResult()
 
-    def cfs(self):
+    def CFS(self):
 
         print("== CFS ==")
 
@@ -253,7 +216,9 @@ class Escalonador:                  #Criação do objeto Escalonador
             isdone = False
 
             for _ in range(self.frac):  #Itera sobre a fração da cpu disponibilizada para cada processo
+
                 execprocess = tree[min] #Define como processo a ser executado o valor extraido como min da árvore RB
+                self.memoryManager.putPage(execprocess) #Coloca o processo na memória
                 execprocess.alreadyexec += 1
                 execprocess.vruntime += execprocess.priority * 0.1  #Calcula o tempo de execução virtual
                 self.clock += 1
@@ -263,7 +228,8 @@ class Escalonador:                  #Criação do objeto Escalonador
                     tree.pop(min)   #Remove o processo da árvore RB
                     isdone = True   #Muda a variável de controle para True
                     print(f'Processo {execprocess.pid} concluido')
-                    print(repr(execprocess))
+                    print(f'Removendo o processo da memória...')
+                    self.memoryManager.removeFinishedProcess(execprocess) #Remove processo finalizado da memória
                     break
 
                 if self.clock % self.frac == 0: #Se estiver na ultima iteração do for
@@ -273,11 +239,4 @@ class Escalonador:                  #Criação do objeto Escalonador
 
             if not isdone:
                 tree.insert((old_process.vruntime, old_process.pid), old_process) #Reinsere o processo na árvore RB atualizando o vruntime chave
-
-        self.showResult() #Mostra o resultado
-
-    #Método para criar txt de resultados
-    def showResult(self):
-        with open("result.txt", "w") as result:
-            for i in self.processes:
-                result.write(f'{repr(i)}\n')
+        self.memoryManager.showResult()

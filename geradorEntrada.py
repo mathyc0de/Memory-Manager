@@ -1,6 +1,9 @@
 import random
 from tqdm import tqdm
 from time import sleep
+from math import log2
+from random import choice, shuffle
+from escalonador import Escalonador
 # algoritmoDeEscalonamento|fraçãoDeCPU|políticaMemória|tamanhoMemória|tamanhoPáginasMolduras|percentualAlocação
 # tempoCriacaoProcesso|PID|tempoDeExecução|prioridade (ou bilhetes)|qtdeMemoria|sequênciaAcessoPaginasProcesso
 
@@ -32,11 +35,12 @@ if __name__ == "__main__":
     print("Informe o tamanho da memória principal (bytes): ")
     memorySize = int(input())
     assert memorySize > 512, "O tamanho da memória principal precisa ser maior que 512B!"
+    assert memorySize >= 512 and log2(memorySize).is_integer(), "O tamanho da memória precisa principal ser uma potência de 2."
 
     print("Informe o tamanho das páginas e molduras (bytes): ")
     pageSize = int(input())
     assert pageSize < memorySize, "O tamanho da memória principal precisa ser maior que o tamanho da página."
-    assert pageSize >= 512 and pageSize ** (1 /2) % 1 == 0, "O tamanho da página precisa ser maior que 512B e precisa ser uma potência de 2."
+    assert pageSize >= 512 and log2(pageSize).is_integer(), "O tamanho da página precisa ser maior ou igual a 512B e precisa ser uma potência de 2."
 
     print("Informe o percentual máximo que cada processo terá na memória principal: ")
     maxMemoryAllocationPercent = int(input().replace("%","")) / 100
@@ -45,18 +49,26 @@ if __name__ == "__main__":
     print("Informe o numero de processos a serem criados")
     numProcessos = int(input())
     
-    out = open("entradaEscalonador.txt", 'w')
+    out = open("entradaGerenciador.txt", 'w')
 
     out.write(f"{alg}|{clock}|{policy}|{memorySize}|{pageSize}|{maxMemoryAllocationPercent}\n")
     
     print("\nCriando Processos...")
     for i in tqdm(range(0, numProcessos)):
         sleep(0.1)
-        tempo = random.randrange(1,10)*clock
         prioridade = random.randrange(1, 100)
-        memoryAlloc = 2 ** random.randint(9, 18)
-        numberOfPages = int(memoryAlloc / pageSize)
-        pageAccessSequence = [random.randint(1, numberOfPages) for _ in range(tempo)] ##### tem problema aqui spa
+
+        expoente = int(log2(pageSize)) # ex 512 -> 9
+        memoryAlloc = 2 ** random.randint((expoente + 1), expoente + 3) # ex 2 ** (10  -------  12) = (1024 ------- 4096)
+        numberOfPages = int(memoryAlloc / pageSize) # ex 2048 / 512 = 4 pages
+
+        tempo = random.randrange(numberOfPages, numberOfPages + int(numberOfPages * 0.5)) * clock # ex: (4 times ----- 6 times)
+
+        pageAccessSequence = [x for x in range(1, numberOfPages + 1)] # ex: (1, 2, 3, 4)
+        pageAccessSequence.extend([random.choice(pageAccessSequence) for _ in range(tempo - numberOfPages)]) 
+        shuffle(pageAccessSequence) # ex: (1,2,1,3,4,1)
+
+
         out.write(f"{i}|{i}|{tempo}|{prioridade}|{memoryAlloc}|{pageAccessSequence}\n")
 
     out.close()
