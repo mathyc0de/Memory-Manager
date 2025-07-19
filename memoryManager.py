@@ -8,12 +8,6 @@ class MemoryPolicy(Enum):
     LOCAL = "local"
     GLOBAL = "global"
 
-@dataclass
-class Moldura:
-    id: int
-    page: int | None = None
-    time_load: int | None = None
-    last_use: int | None = None
 
 
 class Process:                              #Criação do objeto Process
@@ -29,6 +23,7 @@ class Process:                              #Criação do objeto Process
         self.page_sequence = loads(page_sequence)
         self.maxPages = maxPages
         self.pageTable: dict[int, int] = {}
+        self.last_clock = beggining
     
 
     def limit_reached(self):
@@ -37,10 +32,17 @@ class Process:                              #Criação do objeto Process
 
     def havePagesInTable(self):
         return len(self.pageTable) > 0
+    
+    def add_to_page_table(self, page: int, frame_id: int): self.pageTable[page] = frame_id
             
     
     def isPageInTable(self):
-        return self.pageTable.get(self.page_sequence[0], False)
+        return self.pageTable.get(self.page_sequence[0], -1) != -1
+    
+    def __eq__(self, value):
+        if (isinstance(value, Process)): return value == self
+        elif (isinstance(value, int)): return value == self.pid
+        return NotImplemented
 
     
     def __repr__(self): #Define a forma de representação do objeto
@@ -61,6 +63,26 @@ class Process:                              #Criação do objeto Process
                         f'Priority: {self.priority:03} | Vruntime: {self.vruntime:06.2f} | End: {self.done:04} | Waitingtime: {waitingtime:04}')
     
 
+@dataclass
+class Moldura:
+    id: int
+    page: int | None = None
+    time_load: int | None = None
+    last_use: int | None = None
+    pid: int = None
+
+    def reset(self):
+        self.page = None
+        self.time_load = None
+        self.last_use = None
+        self.pid = None
+
+    def redefine(self, process: Process):
+        self.page = process.page_sequence[0]
+        self.time_load = process.last_clock
+        self.last_use = process.last_clock
+        self.pid = process.pid
+    
 
 
 class MemoryManager:
@@ -72,16 +94,17 @@ class MemoryManager:
         self.pageSize = int(pageSize)
         self.maxMemoryAllocationPercent = float(maxMemoryAllocationPercent)
         self.memory: list[Moldura] = [Moldura(i) for i in range(self.memorySize // self.pageSize)]
+        self.processes: list[Process] | None = None
         self.subst = 0
     
-    def accessPage(self, process: Process, clock: int):
+    def accessPage(self, process: Process):
         page = process.page_sequence[0]
         if not process.isPageInTable(): 
             print(f"Fault! A página {page} do processo {process.pid} não está na tabela de páginas",end=" --> ")
             self.insertPage(process)
         else:
             print(f"HIT! A página {page} do processo {process.pid} já existe na memória. ALG: {self.algSubstituicao}")
-            self.memory[process.pageTable[page]].last_use = clock
+            self.memory[process.pageTable[page]].last_use = process.last_clock
         process.page_sequence.pop(0)  # Remove a página acessada da sequência de acesso do processo
 
     
@@ -102,11 +125,8 @@ class MemoryManager:
             page = process.page_sequence[0]
             if (empty_frame != -1):
                 print(f"Existe espaço na memória, referenciando a página {page} do processo {process.pid} na moldura {empty_frame}. ALG: {self.algSubstituicao}")
-                process.pageTable[page] = empty_frame
-                frame = self.memory[empty_frame]
-                frame.page = page
-                frame.time_load = process.beggining
-                frame.last_use = process.beggining
+                process.add_to_page_table(page, empty_frame)
+                self.memory[empty_frame].redefine(process)
             else: 
                 print(f"Não existe espaço disponível na memória, fazendo uma substituição de página... ALG: {self.algSubstituicao}")
                 self.subst += 1
@@ -114,8 +134,14 @@ class MemoryManager:
                 getattr(self, self.algSubstituicao)(process, policy) # Chama o método de substituição de página correspondente ao algoritmo
     
     def removeFinishedProcess(self, process: Process):
-        for frame_id in process.pageTable.values():
-            self.memory[frame_id].page = None
+        for frame_id in list(process.pageTable.values()):
+            self.memory[frame_id].reset()  # Reseta as molduras ocupadas pelo processo
+        del process.pageTable
+
+    def get_local_frames(self, process: Process):
+        return [frame for frame in self.memory if frame.pid == process.pid]
+    
+    def remove_page_table_ref(self, pid: int, page: int): del self.processes[pid].pageTable[page]
 
 
     @staticmethod
@@ -124,24 +150,30 @@ class MemoryManager:
 
     def FIFO(self, process: Process, policy: MemoryPolicy): # First in First Out
         if policy == MemoryPolicy.LOCAL:
-            ...
+            first_in: Moldura = min(self.get_local_frames(process), key=lambda frame: frame.time_load)
+            print(f"Substituindo a página menos usada {first_in.page} do mesmo processo, pela página {process.page_sequence[0]}. ALG: {self.algSubstituicao}")
         else:
-            ...
-    
+            first_in: Moldura = min(self.memory, key=lambda frame: frame.time_load)
+            print(f"Substituindo a página contida na moldura {first_in.id} em escopo global, pela página {process.page_sequence[0]} do processo {process.pid}.")
+        
+        self.remove_page_table_ref(first_in.pid, first_in.page)
+        first_in.redefine(process)
+        process.add_to_page_table(process.page_sequence[0], first_in.id)
+
     def LRU(self, process: Process, policy: MemoryPolicy): # Least Recently Used (Menos Recentemente Usado)
         if policy == MemoryPolicy.LOCAL:
-            ...
+            frames: list[Moldura] = [frame for frame in self.memory if frame.page is not None and frame.page in process.pageTable]
         else:
             ...
     
     def NRU(self, process: Process, policy: MemoryPolicy): # Not Frequently Used (Não Frequentemente Usado)
         if policy == MemoryPolicy.LOCAL:
-            ...
+            frames: list[Moldura] = [frame for frame in self.memory if frame.page is not None and frame.page in process.pageTable]
         else:
             ...
     
     def optimal(self, process: Process, policy: MemoryPolicy): # Ótimo
         if policy == MemoryPolicy.LOCAL:
-            ...
+            frames: list[Moldura] = [frame for frame in self.memory if frame.page is not None and frame.page in process.pageTable]
         else:
             ...

@@ -5,7 +5,6 @@ from memoryManager import MemoryManager, Process
 
 class Escalonador:                  #Criação do objeto Escalonador
     def __init__(self, alg: str, frac: int, algSubstituicao: str, infos: list):   
-        print(infos[0])   
         self.memory_manager = MemoryManager.fromList(infos, algSubstituicao)
         self.maxProcessPages = self.memory_manager.memorySize * self.memory_manager.maxMemoryAllocationPercent // self.memory_manager.pageSize
         infos.pop(0)
@@ -14,6 +13,7 @@ class Escalonador:                  #Criação do objeto Escalonador
         self.clock = 0              # Clock atual
         self.processes = []         # Lista de processos
         self.separate(infos)             #Chama o método de separar as informações
+        self.memory_manager.processes = self.processes
 
 
     @staticmethod
@@ -221,7 +221,8 @@ class Escalonador:                  #Criação do objeto Escalonador
             for _ in range(self.frac):  #Itera sobre a fração da cpu disponibilizada para cada processo
 
                 execprocess = tree[min] #Define como processo a ser executado o valor extraido como min da árvore RB
-                self.memory_manager.accessPage(execprocess, self.clock)
+                execprocess.last_clock = self.clock  #Atualiza o clock do processo
+                self.memory_manager.accessPage(execprocess)
                 execprocess.alreadyexec += 1
                 execprocess.vruntime += execprocess.priority * 0.1  #Calcula o tempo de execução virtual
                 self.clock += 1
