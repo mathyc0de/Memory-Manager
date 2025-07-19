@@ -221,7 +221,7 @@ class Escalonador:                  #Criação do objeto Escalonador
             for _ in range(self.frac):  #Itera sobre a fração da cpu disponibilizada para cada processo
 
                 execprocess = tree[min] #Define como processo a ser executado o valor extraido como min da árvore RB
-                self.memory_manager.accessPage(execprocess)
+                self.memory_manager.accessPage(execprocess, self.clock)
                 execprocess.alreadyexec += 1
                 execprocess.vruntime += execprocess.priority * 0.1  #Calcula o tempo de execução virtual
                 self.clock += 1

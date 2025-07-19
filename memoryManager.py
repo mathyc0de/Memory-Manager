@@ -74,12 +74,14 @@ class MemoryManager:
         self.memory: list[Moldura] = [Moldura(i) for i in range(self.memorySize // self.pageSize)]
         self.subst = 0
     
-    def accessPage(self, process: Process):
+    def accessPage(self, process: Process, clock: int):
+        page = process.page_sequence[0]
         if not process.isPageInTable(): 
-            print(f"Fault! A página {process.page_sequence[0]} do processo {process.pid} não está na tabela de páginas",end=" --> ")
+            print(f"Fault! A página {page} do processo {process.pid} não está na tabela de páginas",end=" --> ")
             self.insertPage(process)
         else:
-            print(f"HIT! A página {process.page_sequence[0]} do processo {process.pid} já existe na memória. ALG: {self.algSubstituicao}")
+            print(f"HIT! A página {page} do processo {process.pid} já existe na memória. ALG: {self.algSubstituicao}")
+            self.memory[process.pageTable[page]].last_use = clock
         process.page_sequence.pop(0)  # Remove a página acessada da sequência de acesso do processo
 
     
@@ -101,7 +103,10 @@ class MemoryManager:
             if (empty_frame != -1):
                 print(f"Existe espaço na memória, referenciando a página {page} do processo {process.pid} na moldura {empty_frame}. ALG: {self.algSubstituicao}")
                 process.pageTable[page] = empty_frame
-                self.memory[empty_frame].page = page
+                frame = self.memory[empty_frame]
+                frame.page = page
+                frame.time_load = process.beggining
+                frame.last_use = process.beggining
             else: 
                 print(f"Não existe espaço disponível na memória, fazendo uma substituição de página... ALG: {self.algSubstituicao}")
                 self.subst += 1
