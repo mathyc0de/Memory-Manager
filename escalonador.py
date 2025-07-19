@@ -5,7 +5,8 @@ from memoryManager import MemoryManager, Process
 
 class Escalonador:                  #Criação do objeto Escalonador
     def __init__(self, alg: str, frac: int, infos: list):      
-        self.memoryManager = MemoryManager.fromList(infos)
+        self.memory_manager = MemoryManager.fromList(infos)
+        self.maxProcessPages = self.memory_manager.memorySize * self.memory_manager.maxMemoryAllocationPercent // self.memory_manager.pageSize
         infos.pop(0)
         self.alg = alg         # Algoritmo selecionado pelo usuário
         self.frac = frac            # Fração da CPU que cada processo terá controle 
@@ -24,8 +25,7 @@ class Escalonador:                  #Criação do objeto Escalonador
         for i in range(len(infos)): #Itera sobre cada processo da entrada
             data =  infos[i].split("|")
             splitting = list(map(int, data[:4])) #Separa as informações do processo em uma lista
-
-            newprocess = Process(*splitting, memory_alloc=data[4], page_sequence=data[5]) #Cria uma variável newprocess da classe Process e utiliza as informações da entrada
+            newprocess = Process(*splitting, maxPages = self.maxProcessPages, page_sequence=data[5]) #Cria uma variável newprocess da classe Process e utiliza as informações da entrada
             self.processes.append(newprocess) #Isere o novo processo na lista de processos do escalonador
             self.tempoex.append(newprocess.exectime) # Insere o tempo de execução desse novo Processo na lista tempo de execução
 
@@ -218,7 +218,7 @@ class Escalonador:                  #Criação do objeto Escalonador
             for _ in range(self.frac):  #Itera sobre a fração da cpu disponibilizada para cada processo
 
                 execprocess = tree[min] #Define como processo a ser executado o valor extraido como min da árvore RB
-                self.memoryManager.putPage(execprocess) #Coloca o processo na memória
+                self.memory_manager.putPage(execprocess)
                 execprocess.alreadyexec += 1
                 execprocess.vruntime += execprocess.priority * 0.1  #Calcula o tempo de execução virtual
                 self.clock += 1
@@ -229,7 +229,7 @@ class Escalonador:                  #Criação do objeto Escalonador
                     isdone = True   #Muda a variável de controle para True
                     print(f'Processo {execprocess.pid} concluido')
                     print(f'Removendo o processo da memória...')
-                    self.memoryManager.removeFinishedProcess(execprocess) #Remove processo finalizado da memória
+                    self.memory_manager.removeFinishedProcess(execprocess) #Remove processo finalizado da memória
                     break
 
                 if self.clock % self.frac == 0: #Se estiver na ultima iteração do for
@@ -239,4 +239,4 @@ class Escalonador:                  #Criação do objeto Escalonador
 
             if not isdone:
                 tree.insert((old_process.vruntime, old_process.pid), old_process) #Reinsere o processo na árvore RB atualizando o vruntime chave
-        self.memoryManager.showResult()
+        self.memory_manager.showResult()

@@ -9,33 +9,15 @@ class MemoryPolicy(Enum):
     GLOBAL = "global"
 
 @dataclass
-class Pagina:
-    PID: int
-    _id: int
-
-
-    def __repr__(self):
-        return f"Pagina {self._id} do processo {self.PID}"
-    
-    def __eq__(self, value):
-        if isinstance(value, Pagina): return self.PID == value.PID and self._id == value._id
-        raise f"Erro ao comparar um objeto do tipo 'página' com um objeto do tipo {type(value)}"
-    
-    # def __iter__(self):
-    #     yield self.size
-    
-    # def __add__(self, value):
-    #     print(self.PID)
-    #     if isinstance(value, Pagina):
-    #         return self.size + value.size
-        
-    # def __radd__(self, value):
-    #     if isinstance(value, int): return self.size + value
-    #     return NotImplemented
+class Moldura:
+    id: int
+    page: int | None = None
+    time_load: int | None = None
+    last_use: int | None = None
 
 
 class Process:                              #Criação do objeto Process
-    def __init__(self, beggining, pid, exectime, priority, page_sequence, memory_alloc):
+    def __init__(self, beggining, pid, exectime, priority, page_sequence, maxPages):
         self.beggining = beggining          # Momento de criação do processo
         self.pid = pid                      # Id do processo
         self.exectime = exectime            # Tempo necessário de execução para concluir o processo
@@ -45,7 +27,19 @@ class Process:                              #Criação do objeto Process
         self.vruntime = None                # Tempo de execução virtual - Utilizado apenas no algoritmo CFS
         self.dynamic_priority = priority    # Usado somente no algoritmo de prioridade[:4]
         self.page_sequence = loads(page_sequence)
-        self.memory_alloc = memory_alloc
+        self.maxPages = maxPages
+        self.pageTable: dict[str, dict[int, int]] = {"FIFO": {}, "LRU": {}, "NRU": {}, "optimal": {}}
+    
+
+    def limit_reached(self, alg):
+        if len(self.pageTable[alg]) == self.maxPages:
+                print(f"Não foi possível adicionar a página: limite percentual excedido, fazendo substituição de página. ALG: {alg}")
+                return True
+        return False
+            
+    
+    def access_next_page(self, alg):
+        return self.pageTable[alg].get(self.page_sequence[0], False)
 
     
     def __repr__(self): #Define a forma de representação do objeto
@@ -75,68 +69,87 @@ class MemoryManager:
         self.memorySize = int(memorySize)
         self.pageSize = int(pageSize)
         self.maxMemoryAllocationPercent = float(maxMemoryAllocationPercent)
-        self.memory: dict[str, list[Pagina]] = {"FIFO": [], "LRU": [], "NRU": [], "excellent": []}
-        self.substituitions = {"FIFO": 0, "LRU": 0, "NRU": 0, "excellent": 0}
+        self.memory: dict[str, list[Moldura]] = {"FIFO": self.createFrames(), "LRU": self.createFrames(), "NRU": self.createFrames(), "optimal": self.createFrames()}
+        self.subst = {"FIFO": 0, "LRU": 0, "NRU": 0, "optimal": 0}
     
     def putPage(self, process: Process):
-        page = Pagina(process.pid, process.page_sequence[0])
         for alg in self.memory.keys():
-            if not page in self.memory[alg]: 
-                print(f"Colocando a {page} na memória. ALG: {alg}")
-                self.__putPage(page, alg)
+            if not process.access_next_page(alg): 
+                print(f"Fault! A página {process.page_sequence[0]} do processo {process.pid} não está na tabela de páginas",end=" --> ")
+                self.__putPage(process, alg)
             else:
-                print(f"A {page} já existe na memória. ALG: {alg}")
+                print(f"HIT! A página {process.page_sequence[0]} do processo {process.pid} já existe na memória. ALG: {alg}")
         process.page_sequence.pop(0)  # Remove a página da sequência de acesso
+    
+    def createFrames(self):
+        return [Moldura(i) for i in range(self.memorySize // self.pageSize)]
     
     def removeFinishedProcess(self, process: Process):
         for alg in self.memory.keys():
             self.__removeFinishedProcess(process, alg)
+    
+    def findEmptyFrame(self, alg: str):
+        for frame in self.memory[alg]:
+            if frame.page is None: return frame.id
+        return -1
 
-    def __putPage(self, page: Pagina, alg: str):
-        print(f"MEMÓRIA: {(len(self.memory[alg]) + 1) * self.pageSize}/{self.memorySize}: ALG: {alg}")
-        if ((len(self.memory[alg]) + 1) * self.pageSize <= self.memorySize): ### FALTA IMPLEMENTAR A LÓGICA DA PORCENTAGEM MÁXIMA QUE UM PROCESSO TERÁ NA MEMÓRIA
-            print(f"Existe espaço na memória, colocando a {page}. ALG: {alg}")
-            self.memory[alg].append(page)
-        else: 
-            print(f"Não existe espaço na memória, fazendo uma substituição de página... ALG: {alg}")
-            self.substituitions[alg] += 1
-            getattr(self, alg)(page) # Chama o método de substituição de página correspondente ao algoritmo
+    def __putPage(self, process: Process, alg: str):
+        if (process.limit_reached(alg)): 
+            getattr(self, alg)(process, MemoryPolicy.LOCAL)
+            self.subst[alg] += 1
+        else:
+            empty_frame = self.findEmptyFrame(alg)
+            page = process.page_sequence[0]
+            if (empty_frame != -1):
+                print(f"Existe espaço na memória, referenciando a página {page} do processo {process.pid} na moldura {empty_frame}. ALG: {alg}")
+                process.pageTable[alg][page] = empty_frame
+                self.memory[alg][empty_frame].page = page
+            else: 
+                print(f"Não existe espaço disponível na memória, fazendo uma substituição de página... ALG: {alg}")
+                self.subst[alg] += 1
+                getattr(self, alg)(process) # Chama o método de substituição de página correspondente ao algoritmo
     
     def __removeFinishedProcess(self, process: Process, alg: str):
-        self.memory[alg] = [page for page in self.memory[alg] if page.PID != process.pid]
+        for frame_id in process.pageTable[alg].values():
+            self.memory[alg][frame_id].page = None
+
 
     @staticmethod
     def fromList(infos: list):
         return MemoryManager(*infos[0].split("|")[2:])
 
-    def FIFO(self, page: Pagina): # First in First Out
-        if self.memoryPolicy == MemoryPolicy.LOCAL:
+    def FIFO(self, process: Process, policy: MemoryPolicy = None): # First in First Out
+        _policy = self.memoryPolicy if not policy else policy
+        if _policy == MemoryPolicy.LOCAL:
             ...
         else:
             ...
     
-    def LRU(self, page: Pagina): # Least Recently Used (Menos Recentemente Usado)
-        if self.memoryPolicy == MemoryPolicy.LOCAL:
+    def LRU(self, process: Process, policy: MemoryPolicy = None): # Least Recently Used (Menos Recentemente Usado)
+        _policy = self.memoryPolicy if not policy else policy
+        if _policy == MemoryPolicy.LOCAL:
             ...
         else:
             ...
     
-    def NRU(self, page: Pagina): # Not Frequently Used (Não Frequentemente Usado)
-        if self.memoryPolicy == MemoryPolicy.LOCAL:
+    def NRU(self, process: Process, policy: MemoryPolicy = None): # Not Frequently Used (Não Frequentemente Usado)
+        _policy = self.memoryPolicy if not policy else policy
+        if _policy == MemoryPolicy.LOCAL:
             ...
         else:
             ...
     
-    def excellent(self, page: Pagina): # Ótimo
-        if self.memoryPolicy == MemoryPolicy.LOCAL:
+    def optimal(self, process: Process, policy: MemoryPolicy = None): # Ótimo
+        _policy = self.memoryPolicy if not policy else policy
+        if _policy == MemoryPolicy.LOCAL:
             ...
         else:
             ...
     
     def showResult(self):
-        subst = self.substituitions
-        excellent = subst.pop("excellent")
+        subst = self.subst
+        optimal = subst.pop("optimal")
         best_key = min(subst, key=subst.get)
         best = best_key if list(subst.values()).count(subst[best_key]) == 1 else "EMPATE"
         with open("result.txt", "w") as result:
-            result.write(f"{subst["FIFO"]}|{subst["LRU"]}|{subst["NRU"]}|{excellent}|{best}\n")
+            result.write(f"{subst["FIFO"]}|{subst["LRU"]}|{subst["NRU"]}|{optimal}|{best}\n")
