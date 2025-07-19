@@ -28,18 +28,16 @@ class Process:                              #Criação do objeto Process
         self.dynamic_priority = priority    # Usado somente no algoritmo de prioridade[:4]
         self.page_sequence = loads(page_sequence)
         self.maxPages = maxPages
-        self.pageTable: dict[str, dict[int, int]] = {"FIFO": {}, "LRU": {}, "NRU": {}, "optimal": {}}
+        self.pageTable: dict[int, int] = {}
     
 
-    def limit_reached(self, alg):
-        if len(self.pageTable[alg]) == self.maxPages:
-                print(f"Não foi possível adicionar a página: limite percentual excedido, fazendo substituição de página. ALG: {alg}")
-                return True
+    def limit_reached(self):
+        if len(self.pageTable) == self.maxPages: return True
         return False
             
     
-    def access_next_page(self, alg):
-        return self.pageTable[alg].get(self.page_sequence[0], False)
+    def isPageInTable(self):
+        return self.pageTable.get(self.page_sequence[0], False)
 
     
     def __repr__(self): #Define a forma de representação do objeto
@@ -64,61 +62,57 @@ class Process:                              #Criação do objeto Process
 
 class MemoryManager:
     
-    def __init__(self, policy: str, memorySize: int, pageSize: int, maxMemoryAllocationPercent: float):
+    def __init__(self, policy: str, memorySize: int, pageSize: int, maxMemoryAllocationPercent: float, algSubstituicao: str):
+        self.algSubstituicao = algSubstituicao
         self.memoryPolicy = MemoryPolicy(policy)
         self.memorySize = int(memorySize)
         self.pageSize = int(pageSize)
         self.maxMemoryAllocationPercent = float(maxMemoryAllocationPercent)
-        self.memory: dict[str, list[Moldura]] = {"FIFO": self.createFrames(), "LRU": self.createFrames(), "NRU": self.createFrames(), "optimal": self.createFrames()}
-        self.subst = {"FIFO": 0, "LRU": 0, "NRU": 0, "optimal": 0}
+        self.memory: list[Moldura] = [Moldura(i) for i in range(self.memorySize // self.pageSize)]
+        self.subst = 0
     
-    def putPage(self, process: Process):
-        for alg in self.memory.keys():
-            if not process.access_next_page(alg): 
-                print(f"Fault! A página {process.page_sequence[0]} do processo {process.pid} não está na tabela de páginas",end=" --> ")
-                self.__putPage(process, alg)
-            else:
-                print(f"HIT! A página {process.page_sequence[0]} do processo {process.pid} já existe na memória. ALG: {alg}")
-        process.page_sequence.pop(0)  # Remove a página da sequência de acesso
+    def accessPage(self, process: Process):
+        if not process.isPageInTable(): 
+            print(f"Fault! A página {process.page_sequence[0]} do processo {process.pid} não está na tabela de páginas",end=" --> ")
+            self.insertPage(process)
+        else:
+            print(f"HIT! A página {process.page_sequence[0]} do processo {process.pid} já existe na memória. ALG: {self.algSubstituicao}")
+        process.page_sequence.pop(0)  # Remove a página acessada da sequência de acesso do processo
+
     
-    def createFrames(self):
-        return [Moldura(i) for i in range(self.memorySize // self.pageSize)]
-    
-    def removeFinishedProcess(self, process: Process):
-        for alg in self.memory.keys():
-            self.__removeFinishedProcess(process, alg)
-    
-    def findEmptyFrame(self, alg: str):
-        for frame in self.memory[alg]:
+    def findEmptyFrame(self):
+        for frame in self.memory:
             if frame.page is None: return frame.id
         return -1
 
-    def __putPage(self, process: Process, alg: str):
-        if (process.limit_reached(alg)): 
-            getattr(self, alg)(process, MemoryPolicy.LOCAL)
-            self.subst[alg] += 1
+    def insertPage(self, process: Process):
+        if (process.limit_reached()):
+            print(f"Não foi possível adicionar a página: limite percentual excedido, fazendo substituição local de página. ALG: {self.algSubstituicao}")
+            getattr(self, self.algSubstituicao)(process, MemoryPolicy.LOCAL)
+            self.subst += 1
         else:
-            empty_frame = self.findEmptyFrame(alg)
+            empty_frame = self.findEmptyFrame()
             page = process.page_sequence[0]
             if (empty_frame != -1):
-                print(f"Existe espaço na memória, referenciando a página {page} do processo {process.pid} na moldura {empty_frame}. ALG: {alg}")
-                process.pageTable[alg][page] = empty_frame
-                self.memory[alg][empty_frame].page = page
+                print(f"Existe espaço na memória, referenciando a página {page} do processo {process.pid} na moldura {empty_frame}. ALG: {self.algSubstituicao}")
+                process.pageTable[page] = empty_frame
+                self.memory[empty_frame].page = page
             else: 
-                print(f"Não existe espaço disponível na memória, fazendo uma substituição de página... ALG: {alg}")
-                self.subst[alg] += 1
-                getattr(self, alg)(process) # Chama o método de substituição de página correspondente ao algoritmo
+                print(f"Não existe espaço disponível na memória, fazendo uma substituição de página... ALG: {self.algSubstituicao}")
+                self.subst += 1
+                getattr(self, self.algSubstituicao)(process) # Chama o método de substituição de página correspondente ao algoritmo
     
-    def __removeFinishedProcess(self, process: Process, alg: str):
-        for frame_id in process.pageTable[alg].values():
-            self.memory[alg][frame_id].page = None
+    def removeFinishedProcess(self, process: Process):
+        for frame_id in process.pageTable.values():
+            self.memory[frame_id].page = None
 
 
     @staticmethod
-    def fromList(infos: list):
-        return MemoryManager(*infos[0].split("|")[2:])
+    def fromList(infos: list, algSubstituicao: str):
+        return MemoryManager(*infos[0].split("|")[2:], algSubstituicao)  # Cria um novo objeto MemoryManager a partir de uma lista de informações
 
     def FIFO(self, process: Process, policy: MemoryPolicy = None): # First in First Out
+        print(self.subst)
         _policy = self.memoryPolicy if not policy else policy
         if _policy == MemoryPolicy.LOCAL:
             ...
@@ -145,11 +139,3 @@ class MemoryManager:
             ...
         else:
             ...
-    
-    def showResult(self):
-        subst = self.subst
-        optimal = subst.pop("optimal")
-        best_key = min(subst, key=subst.get)
-        best = best_key if list(subst.values()).count(subst[best_key]) == 1 else "EMPATE"
-        with open("result.txt", "w") as result:
-            result.write(f"{subst["FIFO"]}|{subst["LRU"]}|{subst["NRU"]}|{optimal}|{best}\n")
