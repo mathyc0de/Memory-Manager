@@ -34,6 +34,9 @@ class Process:                              #Criação do objeto Process
     def limit_reached(self):
         if len(self.pageTable) == self.maxPages: return True
         return False
+
+    def havePagesInTable(self):
+        return len(self.pageTable) > 0
             
     
     def isPageInTable(self):
@@ -84,14 +87,16 @@ class MemoryManager:
         for frame in self.memory:
             if frame.page is None: return frame.id
         return -1
+        
 
     def insertPage(self, process: Process):
+        empty_frame = self.findEmptyFrame()
         if (process.limit_reached()):
-            print(f"Não foi possível adicionar a página: limite percentual excedido, fazendo substituição local de página. ALG: {self.algSubstituicao}")
-            getattr(self, self.algSubstituicao)(process, MemoryPolicy.LOCAL)
+            policy = MemoryPolicy.LOCAL if process.havePagesInTable() else MemoryPolicy.GLOBAL
+            print(f"Não foi possível adicionar a página: limite percentual excedido, fazendo substituição {policy.value} de página. ALG: {self.algSubstituicao}")
+            getattr(self, self.algSubstituicao)(process, policy)
             self.subst += 1
         else:
-            empty_frame = self.findEmptyFrame()
             page = process.page_sequence[0]
             if (empty_frame != -1):
                 print(f"Existe espaço na memória, referenciando a página {page} do processo {process.pid} na moldura {empty_frame}. ALG: {self.algSubstituicao}")
@@ -100,7 +105,8 @@ class MemoryManager:
             else: 
                 print(f"Não existe espaço disponível na memória, fazendo uma substituição de página... ALG: {self.algSubstituicao}")
                 self.subst += 1
-                getattr(self, self.algSubstituicao)(process) # Chama o método de substituição de página correspondente ao algoritmo
+                policy = MemoryPolicy.LOCAL if self.memoryPolicy == MemoryPolicy.LOCAL and process.havePagesInTable() else MemoryPolicy.GLOBAL
+                getattr(self, self.algSubstituicao)(process, policy) # Chama o método de substituição de página correspondente ao algoritmo
     
     def removeFinishedProcess(self, process: Process):
         for frame_id in process.pageTable.values():
@@ -111,31 +117,26 @@ class MemoryManager:
     def fromList(infos: list, algSubstituicao: str):
         return MemoryManager(*infos[0].split("|")[2:], algSubstituicao)  # Cria um novo objeto MemoryManager a partir de uma lista de informações
 
-    def FIFO(self, process: Process, policy: MemoryPolicy = None): # First in First Out
-        print(self.subst)
-        _policy = self.memoryPolicy if not policy else policy
-        if _policy == MemoryPolicy.LOCAL:
+    def FIFO(self, process: Process, policy: MemoryPolicy): # First in First Out
+        if policy == MemoryPolicy.LOCAL:
             ...
         else:
             ...
     
-    def LRU(self, process: Process, policy: MemoryPolicy = None): # Least Recently Used (Menos Recentemente Usado)
-        _policy = self.memoryPolicy if not policy else policy
-        if _policy == MemoryPolicy.LOCAL:
+    def LRU(self, process: Process, policy: MemoryPolicy): # Least Recently Used (Menos Recentemente Usado)
+        if policy == MemoryPolicy.LOCAL:
             ...
         else:
             ...
     
-    def NRU(self, process: Process, policy: MemoryPolicy = None): # Not Frequently Used (Não Frequentemente Usado)
-        _policy = self.memoryPolicy if not policy else policy
-        if _policy == MemoryPolicy.LOCAL:
+    def NRU(self, process: Process, policy: MemoryPolicy): # Not Frequently Used (Não Frequentemente Usado)
+        if policy == MemoryPolicy.LOCAL:
             ...
         else:
             ...
     
-    def optimal(self, process: Process, policy: MemoryPolicy = None): # Ótimo
-        _policy = self.memoryPolicy if not policy else policy
-        if _policy == MemoryPolicy.LOCAL:
+    def optimal(self, process: Process, policy: MemoryPolicy): # Ótimo
+        if policy == MemoryPolicy.LOCAL:
             ...
         else:
             ...
