@@ -162,18 +162,18 @@ class MemoryManager:
 
     def LRU(self, process: Process, policy: MemoryPolicy): # Least Recently Used (Menos Recentemente Usado)
         if policy == MemoryPolicy.LOCAL:
-            frames: list[Moldura] = [frame for frame in self.memory if frame.page is not None and frame.page in process.pageTable]
+            frames: list[Moldura] = self.get_local_frames(process)
         else:
             ...
     
     def NRU(self, process: Process, policy: MemoryPolicy): # Not Frequently Used (Não Frequentemente Usado)
         if policy == MemoryPolicy.LOCAL:
-            frames: list[Moldura] = [frame for frame in self.memory if frame.page is not None and frame.page in process.pageTable]
+            frames: list[Moldura] = self.get_local_frames(process)
         else:
             ...
     
     def optimal(self, process: Process, policy: MemoryPolicy): # Ótimo
         if policy == MemoryPolicy.LOCAL:
-            frames: list[Moldura] = [frame for frame in self.memory if frame.page is not None and frame.page in process.pageTable]
+            frames: list[Moldura] = self.get_local_frames(process)
         else:
             ...
