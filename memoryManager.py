@@ -143,6 +143,11 @@ class MemoryManager:
     
     def remove_page_table_ref(self, pid: int, page: int): del self.processes[pid].pageTable[page]
 
+    def change_page(self, process: Process, frame: Moldura):
+        self.remove_page_table_ref(frame.pid, frame.page)
+        frame.redefine(process)
+        process.add_to_page_table(process.page_sequence[0], frame.id)
+
 
     @staticmethod
     def fromList(infos: list, algSubstituicao: str):
@@ -156,17 +161,20 @@ class MemoryManager:
             first_in: Moldura = min(self.memory, key=lambda frame: frame.time_load)
             print(f"Substituindo a página contida na moldura {first_in.id} em escopo global, pela página {process.page_sequence[0]} do processo {process.pid}.")
         
-        self.remove_page_table_ref(first_in.pid, first_in.page)
-        first_in.redefine(process)
-        process.add_to_page_table(process.page_sequence[0], first_in.id)
+        self.change_page(process, first_in)
 
     def LRU(self, process: Process, policy: MemoryPolicy): # Least Recently Used (Menos Recentemente Usado)
         if policy == MemoryPolicy.LOCAL:
-            frames: list[Moldura] = self.get_local_frames(process)
+            lru = min(self.get_local_frames(process), key=lambda frame: frame.last_use)
+            print(f"Substituindo a página menos usada {lru.page} do mesmo processo, pela página {process.page_sequence[0]}. ALG: {self.algSubstituicao}")
         else:
-            ...
+            lru = min(self.memory, key=lambda frame: frame.last_use)
+            print(f"Substituindo a página contida na moldura {lru.id} em escopo global, pela página {process.page_sequence[0]} do processo {process.pid}.")
+
+        self.change_page(process, lru)
+
     
-    def NRU(self, process: Process, policy: MemoryPolicy): # Not Frequently Used (Não Frequentemente Usado)
+    def NFU(self, process: Process, policy: MemoryPolicy): # Not Frequently Used (Não Frequentemente Usado)
         if policy == MemoryPolicy.LOCAL:
             frames: list[Moldura] = self.get_local_frames(process)
         else:

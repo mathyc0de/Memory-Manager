@@ -32,6 +32,7 @@ class Escalonador:                  #Criação do objeto Escalonador
 
     def start(self): 
         getattr(self, self.alg)()
+        print(self.memory_manager.subst)
         return self.memory_manager.subst
 
     def alternanciaCircular(self):

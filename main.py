@@ -6,9 +6,9 @@ def showResult(subst: dict):
     best_key = min(subst, key=subst.get)
     best = best_key if list(subst.values()).count(subst[best_key]) == 1 else "EMPATE"
     with open("result.txt", "w") as result:
-        result.write(f"{subst["FIFO"]}|{subst["LRU"]}|{subst["NRU"]}|{optimal}|{best}\n")
+        result.write(f"{subst["FIFO"]}|{subst["LRU"]}|{subst["NFU"]}|{optimal}|{best}\n")
 
-SUBSTITUITION_ALGORITHMS = ["FIFO", "LRU", "NRU", "optimal"]
+SUBSTITUITION_ALGORITHMS = ["FIFO", "LRU", "NFU", "optimal"]
 
 if __name__ == "__main__":
     with open("entradaGerenciador.txt", "r") as entry:  #Extrai informações da entrada
