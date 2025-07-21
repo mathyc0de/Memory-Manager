@@ -1,6 +1,5 @@
 from enum import Enum
 from dataclasses import dataclass
-from json import loads
 import sys
 import os
 import time
@@ -22,7 +21,7 @@ class Process:                              #Criação do objeto Process
         self.done = None                    # Variável de controle para definir se o processo já foi concluido
         self.vruntime = None                # Tempo de execução virtual - Utilizado apenas no algoritmo CFS
         self.dynamic_priority = priority    # Usado somente no algoritmo de prioridade[:4]
-        self.page_sequence = loads(page_sequence)
+        self.page_sequence = page_sequence
         self.maxPages = maxPages            # Limite de páginas que o processo pode alocar na memória: (tamanho da memória * porcentagem maxima de alocação) / tamanho da pagina
         self.pageTable: dict[int, int] = {} # Tabela de páginas de cada processo {<page>: <frame_id>}
         self.last_clock = beggining         # Último relógio em que o processo foi chamado no escalonador
@@ -141,8 +140,7 @@ class MemoryManager:
     def insertPage(self, process: Process): # Insere a página do processo na memória, fazendo substituição se necessário
         empty_frame = self.findEmptyFrame() # Procura um espaço vazio ou retorna -1
         if (process.limit_reached()):  # Verifica se o processo já atingiu o limite de páginas alocadas
-            policy = MemoryPolicy.LOCAL if process.havePagesInTable() else MemoryPolicy.GLOBAL # Define a política de memória a ser utilizada
-            getattr(self, self.algSubstituicao)(process, policy) # substituição
+            getattr(self, self.algSubstituicao)(process, MemoryPolicy.LOCAL) # substituição
             self.subst += 1 
         else:
             page = process.page_sequence[0] 

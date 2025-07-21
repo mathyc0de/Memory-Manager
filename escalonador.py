@@ -26,13 +26,12 @@ class Escalonador:                  #Criação do objeto Escalonador
         for i in range(len(infos)): #Itera sobre cada processo da entrada
             data =  infos[i].split("|")
             splitting = list(map(int, data[:4])) #Separa as informações do processo em uma lista
-            newprocess = Process(*splitting, maxPages = self.maxProcessPages, page_sequence=data[5]) #Cria uma variável newprocess da classe Process e utiliza as informações da entrada
+            newprocess = Process(*splitting, maxPages = self.maxProcessPages, page_sequence=data[5].split(" ")) #Cria uma variável newprocess da classe Process e utiliza as informações da entrada
             self.processes.append(newprocess) #Isere o novo processo na lista de processos do escalonador
             self.tempoex.append(newprocess.exectime) # Insere o tempo de execução desse novo Processo na lista tempo de execução
 
     def start(self): 
         getattr(self, self.alg)()
-        print(self.memory_manager.subst)
         return self.memory_manager.subst
 
     def alternanciaCircular(self):
@@ -213,7 +212,6 @@ class Escalonador:                  #Criação do objeto Escalonador
             for process in waiting[:]:
                 if process.beggining <= self.clock:     #Só insere o processo na árvore RB se o instante de criação do processo já estiver passado
                     tree.insert((process.vruntime, process.pid), process)   #Chave da árvore RB é uma tupla com o primeiro valor sendo o vruntime e o segundo o pid
-                    print(f'Processo {process.pid} criado no clock {self.clock}')
                     waiting.remove(process)
 
             min = tree.min_key()
@@ -232,13 +230,10 @@ class Escalonador:                  #Criação do objeto Escalonador
                     execprocess.done = self.clock
                     tree.pop(min)   #Remove o processo da árvore RB
                     isdone = True   #Muda a variável de controle para True
-                    print(f'Processo {execprocess.pid} concluido')
-                    print(f'Removendo o processo da memória...')
                     self.memory_manager.removeFinishedProcess(execprocess) #Remove processo finalizado da memória
                     break
 
                 if self.clock % self.frac == 0: #Se estiver na ultima iteração do for
-                    print(f'{repr(execprocess)}\nclock atual: {self.clock}')
                     old_process = execprocess #Guarda a informação do processo atual em old_process
                     tree.pop(min)
 
