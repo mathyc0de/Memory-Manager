@@ -84,6 +84,7 @@ class Moldura:                  # Classe para definir as molduras de memória
         self.last_use = process.last_clock
         self.pid = process.pid
         self.count = 0
+        self.next_use = process.page_sequence[1:].index(self.page) if self.page in process.page_sequence[1:] else float('inf')
 
     
 
