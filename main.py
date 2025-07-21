@@ -20,6 +20,6 @@ if __name__ == "__main__":
 result = {}
 
 for alg in SUBSTITUITION_ALGORITHMS:
-    result[alg] =  Escalonador.fromList(infos[:], alg).start()  #Cria o objeto Escalonador a partir da lista de informações e inicia o escalonamento
+     result[alg] =  Escalonador.fromList(infos[:], alg).start()  #Cria o objeto Escalonador a partir da lista de informações e inicia o escalonamento
 
 showResult(result)  #Exibe o resultado final

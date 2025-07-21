@@ -1,15 +1,1 @@
-Start: 00 | Pid: 00 | Exectime: 0040 | Priority: 002 | End: 0270 | Waitingtime: 0230
-Start: 01 | Pid: 01 | Exectime: 0030 | Priority: 098 | End: 0320 | Waitingtime: 0289
-Start: 02 | Pid: 02 | Exectime: 0060 | Priority: 008 | End: 0580 | Waitingtime: 0518
-Start: 03 | Pid: 03 | Exectime: 0090 | Priority: 008 | End: 0670 | Waitingtime: 0577
-Start: 04 | Pid: 04 | Exectime: 0030 | Priority: 029 | End: 0350 | Waitingtime: 0316
-Start: 05 | Pid: 05 | Exectime: 0060 | Priority: 065 | End: 0600 | Waitingtime: 0535
-Start: 06 | Pid: 06 | Exectime: 0060 | Priority: 010 | End: 0610 | Waitingtime: 0544
-Start: 07 | Pid: 07 | Exectime: 0050 | Priority: 056 | End: 0560 | Waitingtime: 0503
-Start: 08 | Pid: 08 | Exectime: 0010 | Priority: 045 | End: 0100 | Waitingtime: 0082
-Start: 09 | Pid: 09 | Exectime: 0040 | Priority: 025 | End: 0480 | Waitingtime: 0431
-Start: 10 | Pid: 10 | Exectime: 0020 | Priority: 026 | End: 0260 | Waitingtime: 0230
-Start: 11 | Pid: 11 | Exectime: 0040 | Priority: 077 | End: 0490 | Waitingtime: 0439
-Start: 12 | Pid: 12 | Exectime: 0080 | Priority: 029 | End: 0660 | Waitingtime: 0568
-Start: 13 | Pid: 13 | Exectime: 0040 | Priority: 087 | End: 0510 | Waitingtime: 0457
-Start: 14 | Pid: 14 | Exectime: 0020 | Priority: 067 | End: 0310 | Waitingtime: 0276
+7|7|8|7|EMPATE
