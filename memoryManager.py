@@ -4,12 +4,9 @@ import sys
 import os
 import time
 
-
 class MemoryPolicy(Enum): # Classe para definir as políticas de memória
     LOCAL = "local"
     GLOBAL = "global"
-
-
 
 class Process:                              #Criação do objeto Process
     def __init__(self, beggining, pid, exectime, priority, page_sequence, maxPages):
@@ -71,6 +68,7 @@ class Moldura:                  # Classe para definir as molduras de memória
     last_use: int | None = None  # Último uso da página na moldura
     pid: int = None              # É autoexplicativo
     next_use: int | None = None
+    count: int = None            # Contador para NFU
 
     def reset(self):             # Anula as propriedades da moldura para tornar empty
         self.page = None
@@ -116,27 +114,34 @@ class MemoryManager:
             return "| Próxima vez a ser utilizado: Nunca"
         return f"| Próxima vez a ser utilizado: {frame.next_use}"
     
-    
+    # Usado para NRU
+    def reset_r_bits(self):
+        """Zera o bit de referência (R) de todas as molduras na memória."""
+        for frame in self.memory:
+            if frame.page is not None:
+                frame.r_bit = 0
     
     def accessPage(self, process: Process): # Tenta acessar a página atual do processo, ou insere na memória caso n esteja
         self.update_next_use(process)
         if not process.page_sequence:
             return
         page = process.page_sequence[0] # Página atual
-        if not process.isPageInTable(): # Page fault            
-            self.insertPage(process) # Tenta inserir a página na memória
+        if not process.isPageInTable(): # Page fault
+            self.insertPage(process)        # Tenta inserir a página na memória
         else: # Page hit
-            self.memory[process.pageTable[page]].last_use = process.last_clock # Atualiza o último uso da página
-            self.print_memory_state(highlight={process.pageTable[page]: "hit"}) # destaca a informação de hit
-        process.page_sequence.pop(0)  # Remove a página acessada da sequência de acesso do processo
+            frame_id = process.pageTable[page]
+            self.memory[frame_id].last_use = process.last_clock # Atualiza o último uso da página
+            self.print_memory_state(highlight={frame_id: "hit"}) # destaca a informação de hit
+            self.memory[frame_id].r_bit = 1
+        
+        if process.page_sequence:
+            process.page_sequence.pop(0)  # Remove a página acessada da sequência de acesso do processo
 
-    
     def findEmptyFrame(self):
         for frame in self.memory:
             if frame.page is None: return frame.id
         return -1
         
-
     def insertPage(self, process: Process): # Insere a página do processo na memória, fazendo substituição se necessário
         empty_frame = self.findEmptyFrame() # Procura um espaço vazio ou retorna -1
         if (process.limit_reached()):  # Verifica se o processo já atingiu o limite de páginas alocadas
@@ -217,11 +222,32 @@ class MemoryManager:
         self.print_memory_state(highlight={lru.id: "add"})
 
     
-    def NFU(self, process: Process, policy: MemoryPolicy): # Not Frequently Used (Não Frequentemente Usado)
+    def NFU(self, process: Process, policy: MemoryPolicy): # Implementando NFU (Not Frequently Used)
+        # Define o escopo de frames a serem considerados para substituição
+        aging_value = 1
+        candidate_frames: list[Moldura]
         if policy == MemoryPolicy.LOCAL:
-            frames: list[Moldura] = self.get_local_frames(process)
-        else:
-            ...
+            candidate_frames = self.get_local_frames(process)
+        else: # GLOBAL
+            candidate_frames = [frame for frame in self.memory if frame.page is not None]
+
+        nfu_candidate_count = float("inf")
+        victim: Moldura = None
+        
+        for frame in candidate_frames:
+            if frame.count < nfu_candidate_count:
+                victim = frame
+
+        # Envelhecimento
+        for frame in candidate_frames:
+            if frame != victim and frame.count != 0:
+                frame.count -= aging_value
+        # self.print_memory_state(highlight={victim.id: "remove"}) # Descomente para visualização
+        if victim:
+            self.change_page(process, victim)
+        # self.print_memory_state(highlight={victim.id: "add"}) # Descomente para visualização
+        
+        
     
     def optimal(self, process: Process, policy: MemoryPolicy): # Ótimo
         if policy == MemoryPolicy.LOCAL: # Define quais molduras terá acesso dependendo da política
