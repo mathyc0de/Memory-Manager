@@ -226,21 +226,21 @@ class MemoryManager:
             ...
     
     def optimal(self, process: Process, policy: MemoryPolicy): # Ótimo
-        if policy == MemoryPolicy.LOCAL:
+        if policy == MemoryPolicy.LOCAL: # Define quais molduras terá acesso dependendo da política
             frames: list[Moldura] = self.get_local_frames(process)
         else:
             frames = self.memory
 
-        frame_to_replace = max(frames, key=lambda f: f.next_use)
+        frame_to_replace = max(frames, key=lambda f: f.next_use) # Define a variavel como a moldura com maior next_use (quando será utilizada novamente)
 
-        self.print_memory_state(highlight={frame_to_replace.id: "remove"})
-        self.change_page(process, frame_to_replace)
-        self.print_memory_state(highlight={frame_to_replace.id: "add"})
+        self.print_memory_state(highlight={frame_to_replace.id: "remove"}) # Imprime log de remoção de pagina
+        self.change_page(process, frame_to_replace)                        # Substitui a pagina da moldura
+        self.print_memory_state(highlight={frame_to_replace.id: "add"})    # Imprime log de adição de pagina
 
-    def update_next_use(self, process: Process):
+    def update_next_use(self, process: Process):    # Função para atualizar quando cada pagina será utilizada
         future_accesses = process.page_sequence
-        for frame in self.get_local_frames(process):
+        for frame in self.get_local_frames(process):    # É preciso atualizar apenas a do processo que está sendo executado, independente da política
             try:
-                frame.next_use = future_accesses.index(frame.page)
+                frame.next_use = future_accesses.index(frame.page) # Atualiza com base na sequencia
             except ValueError:
-                frame.next_use = float('inf')
+                frame.next_use = float('inf') # Se não aparece na sequencia, define como infinito, significando que não será utilizada
