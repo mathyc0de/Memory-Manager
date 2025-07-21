@@ -76,12 +76,14 @@ class Moldura:                  # Classe para definir as molduras de memória
         self.last_use = None
         self.pid = None
         self.next_use = None
+        self.count = 0
 
     def redefine(self, process: Process): #Substitui as propriedades da moldura com as de outra página
         self.page = process.page_sequence[0]
         self.time_load = process.last_clock
         self.last_use = process.last_clock
         self.pid = process.pid
+        self.count = 0
 
     
 
@@ -105,7 +107,7 @@ class MemoryManager:
         return f"| Último uso: {frame.last_use}"
     
     def NFU_INFO(self, frame: Moldura): # informações específicas do algoritmo NFU
-        return ""
+        return f"| Contagem de hits: {frame.count}"
     
     def optimal_INFO(self, frame: Moldura): # informações específicas do algoritmo Ótimo
         if frame.next_use is None:
