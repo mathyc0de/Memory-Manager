@@ -115,12 +115,9 @@ class MemoryManager:
     
     def accessPage(self, process: Process): # Tenta acessar a página atual do processo, ou insere na memória caso n esteja
         page = process.page_sequence[0] # Página atual
-        if not process.isPageInTable(): # Page fault
-            # print(f"Fault! A página {page} do processo {process.pid} não está na tabela de páginas",end=" --> ")
-            
+        if not process.isPageInTable(): # Page fault            
             self.insertPage(process) # Tenta inserir a página na memória
         else: # Page hit
-            # print(f"HIT! A página {page} do processo {process.pid} já existe na memória. ALG: {self.algSubstituicao}")
             self.memory[process.pageTable[page]].last_use = process.last_clock # Atualiza o último uso da página
             self.print_memory_state(highlight={process.pageTable[page]: "hit"}) # destaca a informação de hit
         process.page_sequence.pop(0)  # Remove a página acessada da sequência de acesso do processo
@@ -136,18 +133,15 @@ class MemoryManager:
         empty_frame = self.findEmptyFrame() # Procura um espaço vazio ou retorna -1
         if (process.limit_reached()):  # Verifica se o processo já atingiu o limite de páginas alocadas
             policy = MemoryPolicy.LOCAL if process.havePagesInTable() else MemoryPolicy.GLOBAL # Define a política de memória a ser utilizada
-            # print(f"Não foi possível adicionar a página: limite percentual excedido, fazendo substituição {policy.value} de página. ALG: {self.algSubstituicao}")
             getattr(self, self.algSubstituicao)(process, policy) # substituição
             self.subst += 1 
         else:
             page = process.page_sequence[0] 
             if (empty_frame != -1): # Se houver espaço vazio na memória
-                # print(f"Existe espaço na memória, referenciando a página {page} do processo {process.pid} na moldura {empty_frame}. ALG: {self.algSubstituicao}")
                 process.add_to_page_table(page, empty_frame) # Adiciona a página e a moldura na tabela de páginas do processo
                 self.memory[empty_frame].redefine(process) # define as propriedades da moldura com as do processo
                 self.print_memory_state(highlight={empty_frame: "add"}) # destaca a informação de adição
             else: 
-                # print(f"Não existe espaço disponível na memória, fazendo uma substituição de página... ALG: {self.algSubstituicao}")
                 self.subst += 1
                 policy = MemoryPolicy.LOCAL if self.memoryPolicy == MemoryPolicy.LOCAL and process.havePagesInTable() else MemoryPolicy.GLOBAL
                 getattr(self, self.algSubstituicao)(process, policy) # Chama o método de substituição de página correspondente ao algoritmo 
@@ -169,7 +163,7 @@ class MemoryManager:
 
     def print_memory_state(  # Método para exibir o estado atual da memória (FEITO COM O PRIMO COPILOT)
     self, 
-    delay: float = 0.5, 
+    delay: float = 0.01, 
     highlight: dict[int, str] = None,
     ):
     # highlight: {frame_id: "add"|"hit"|"remove"}
@@ -199,10 +193,8 @@ class MemoryManager:
     def FIFO(self, process: Process, policy: MemoryPolicy): # First in First Out
         if policy == MemoryPolicy.LOCAL:
             first_in: Moldura = min(self.get_local_frames(process), key=lambda frame: frame.time_load)
-            # print(f"Substituindo a página menos usada {first_in.page} do mesmo processo, pela página {process.page_sequence[0]}. ALG: {self.algSubstituicao}")
         else:
             first_in: Moldura = min(self.memory, key=lambda frame: frame.time_load)
-            # print(f"Substituindo a página contida na moldura {first_in.id} em escopo global, pela página {process.page_sequence[0]} do processo {process.pid}.")
         
         self.print_memory_state(highlight={first_in.id: "remove"})
         self.change_page(process, first_in)
@@ -211,12 +203,11 @@ class MemoryManager:
     def LRU(self, process: Process, policy: MemoryPolicy): # Least Recently Used (Menos Recentemente Usado)
         if policy == MemoryPolicy.LOCAL:
             lru = min(self.get_local_frames(process), key=lambda frame: frame.last_use)
-            print(f"Substituindo a página menos usada {lru.page} do mesmo processo, pela página {process.page_sequence[0]}. ALG: {self.algSubstituicao}")
         else:
             lru = min(self.memory, key=lambda frame: frame.last_use)
-            print(f"Substituindo a página contida na moldura {lru.id} em escopo global, pela página {process.page_sequence[0]} do processo {process.pid}.")
-
+        self.print_memory_state(highlight={lru.id: "remove"})
         self.change_page(process, lru)
+        self.print_memory_state(highlight={lru.id: "add"})
 
     
     def NFU(self, process: Process, policy: MemoryPolicy): # Not Frequently Used (Não Frequentemente Usado)
