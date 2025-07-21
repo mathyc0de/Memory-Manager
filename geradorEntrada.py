@@ -69,6 +69,6 @@ if __name__ == "__main__":
         shuffle(pageAccessSequence) # ex: (1,2,1,3,4,1)
 
 
-        out.write(f"{i}|{i}|{tempo}|{prioridade}|{memoryAlloc}|{pageAccessSequence}\n")
+        out.write(f"{i}|{i}|{tempo}|{prioridade}|{memoryAlloc}|{' '.join(map(str, pageAccessSequence))}\n")
 
     out.close()
