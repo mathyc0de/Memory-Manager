@@ -111,6 +111,10 @@ class MemoryManager:
         return ""
     
     def optimal_INFO(self, frame: Moldura): # informações específicas do algoritmo Ótimo
+        if frame.next_use is None:
+            return "| Próxima vez a ser utilizado: N/A"
+        elif frame.next_use == float('inf'):
+            return "| Próxima vez a ser utilizado: Nunca"
         return f"| Próxima vez a ser utilizado: {frame.next_use}"
     
     
