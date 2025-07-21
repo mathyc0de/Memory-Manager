@@ -8,7 +8,7 @@ def showResult(subst: dict):
     with open("result.txt", "w") as result:
         result.write(f"{subst["FIFO"]}|{subst["LRU"]}|{subst["NFU"]}|{optimal}|{best}\n")
 
-SUBSTITUITION_ALGORITHMS = ["FIFO", "LRU", "NFU", "optimal"]
+SUBSTITUITION_ALGORITHMS = ["optimal","FIFO","LRU","NFU"]
 
 if __name__ == "__main__":
     with open("entradaGerenciador.txt", "r") as entry:  #Extrai informações da entrada

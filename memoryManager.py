@@ -26,7 +26,6 @@ class Process:                              #Criação do objeto Process
         self.maxPages = maxPages            # Limite de páginas que o processo pode alocar na memória: (tamanho da memória * porcentagem maxima de alocação) / tamanho da pagina
         self.pageTable: dict[int, int] = {} # Tabela de páginas de cada processo {<page>: <frame_id>}
         self.last_clock = beggining         # Último relógio em que o processo foi chamado no escalonador
-    
 
     def limit_reached(self):                # Verifica se o processo já atingiu o limite de páginas alocadas   
         if len(self.pageTable) == self.maxPages: return True
@@ -72,18 +71,21 @@ class Moldura:                  # Classe para definir as molduras de memória
     time_load: int | None = None # Tempo de carga da página na moldura
     last_use: int | None = None  # Último uso da página na moldura
     pid: int = None              # É autoexplicativo
+    next_use: int | None = None
 
     def reset(self):             # Anula as propriedades da moldura para tornar empty
         self.page = None
         self.time_load = None
         self.last_use = None
         self.pid = None
+        self.next_use = None
 
     def redefine(self, process: Process): #Substitui as propriedades da moldura com as de outra página
         self.page = process.page_sequence[0]
         self.time_load = process.last_clock
         self.last_use = process.last_clock
         self.pid = process.pid
+
     
 
 
@@ -109,11 +111,14 @@ class MemoryManager:
         return ""
     
     def optimal_INFO(self, frame: Moldura): # informações específicas do algoritmo Ótimo
-        return ""
+        return f"| Próxima vez a ser utilizado: {frame.next_use}"
     
     
     
     def accessPage(self, process: Process): # Tenta acessar a página atual do processo, ou insere na memória caso n esteja
+        self.update_next_use(process)
+        if not process.page_sequence:
+            return
         page = process.page_sequence[0] # Página atual
         if not process.isPageInTable(): # Page fault
             # print(f"Fault! A página {page} do processo {process.pid} não está na tabela de páginas",end=" --> ")
@@ -229,4 +234,18 @@ class MemoryManager:
         if policy == MemoryPolicy.LOCAL:
             frames: list[Moldura] = self.get_local_frames(process)
         else:
-            ...
+            frames = self.memory
+
+        frame_to_replace = max(frames, key=lambda f: f.next_use)
+
+        self.print_memory_state(highlight={frame_to_replace.id: "remove"})
+        self.change_page(process, frame_to_replace)
+        self.print_memory_state(highlight={frame_to_replace.id: "add"})
+
+    def update_next_use(self, process: Process):
+        future_accesses = process.page_sequence
+        for frame in self.get_local_frames(process):
+            try:
+                frame.next_use = future_accesses.index(frame.page)
+            except ValueError:
+                frame.next_use = float('inf')
