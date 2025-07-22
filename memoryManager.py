@@ -4,24 +4,38 @@ import sys
 import os
 import time
 
-class MemoryPolicy(Enum): # Classe para definir as políticas de memória
+
+# ==============================================================================
+# Classes de Estrutura de Dados
+# ==============================================================================
+
+class MemoryPolicy(Enum):
+    """Define as políticas de substituição de página: LOCAL ou GLOBAL."""
     LOCAL = "local"
     GLOBAL = "global"
 
-class Process:                              #Criação do objeto Process
+class Process:
+    """
+    Representa um processo no sistema, contendo todos os seus metadados.
+
+    Isso inclui informações para o escalonador (PID, tempo de execução, prioridade)
+    e para o gerenciador de memória (sequência de acesso a páginas, tabela de páginas).
+    """
     def __init__(self, beggining, pid, exectime, priority, page_sequence, maxPages):
-        self.beggining = beggining          # Momento de criação do processo
-        self.pid = pid                      # Id do processo
-        self.exectime = exectime            # Tempo necessário de execução para concluir o processo
-        self.priority = priority            # Prioridade ou número de bilhetes
-        self.alreadyexec = 0                # Quantidade de tempo já executada do processo
-        self.done = None                    # Variável de controle para definir se o processo já foi concluido
-        self.vruntime = None                # Tempo de execução virtual - Utilizado apenas no algoritmo CFS
-        self.dynamic_priority = priority    # Usado somente no algoritmo de prioridade[:4]
+        self.beggining = beggining
+        self.pid = pid
+        self.exectime = exectime
+        self.priority = priority
+        self.alreadyexec = 0
+        self.done = None
+        self.vruntime = None
+        self.dynamic_priority = priority
+        
         self.page_sequence = page_sequence
-        self.maxPages = maxPages            # Limite de páginas que o processo pode alocar na memória: (tamanho da memória * porcentagem maxima de alocação) / tamanho da pagina
-        self.pageTable: dict[int, int] = {} # Tabela de páginas de cada processo {<page>: <frame_id>}
-        self.last_clock = beggining         # Último relógio em que o processo foi chamado no escalonador
+        
+        self.maxPages = maxPages
+        self.pageTable: dict[int, int] = {}
+        self.last_clock = beggining
 
     def limit_reached(self):                # Verifica se o processo já atingiu o limite de páginas alocadas   
         if len(self.pageTable) == self.maxPages: return True
@@ -37,7 +51,7 @@ class Process:                              #Criação do objeto Process
         return self.pageTable.get(self.page_sequence[0], -1) != -1
     
     def __eq__(self, value):                # Método de comparação para verificar se o processo é igual a outro pelo PID
-        if (isinstance(value, Process)): return value == self
+        if (isinstance(value, Process)): return value == self.pid
         elif (isinstance(value, int)): return value == self.pid
         return NotImplemented
 
@@ -61,45 +75,79 @@ class Process:                              #Criação do objeto Process
     
 
 @dataclass
-class Moldura:                  # Classe para definir as molduras de memória
-    id: int                     #frame id
-    page: int | None = None     # Página que está na moldura
-    time_load: int | None = None # Tempo de carga da página na moldura
-    last_use: int | None = None  # Último uso da página na moldura
-    pid: int = None              # É autoexplicativo
-    next_use: int | None = None
-    count: int = None            # Contador para NFU
+class Moldura:
+    """
+    Representa uma única moldura de página (page frame) na memória física.
 
-    def reset(self):             # Anula as propriedades da moldura para tornar empty
+    Esta classe é um contêiner de dados que armazena o estado de uma moldura,
+    incluindo a página que ela contém e os metadados necessários para os
+    algoritmos de substituição (FIFO, LRU, NFU).
+    """
+    id: int                         # frame id
+    page: int | None = None         # Página que está na moldura
+    time_load: int | None = None    # Tempo de carga da página na moldura
+    last_use: int | None = None     # Último uso da página na moldura
+    pid: int = None                 # É autoexplicativo
+    count: int = 0                  # Contador para NFU
+    r_bit: int = 0                  # Bit de referência para o Envelhecimento
+    next_use: int | None = None
+
+    def reset(self):
+        """Reseta a moldura para o estado 'vazio', limpando todos os metadados."""
         self.page = None
         self.time_load = None
         self.last_use = None
         self.pid = None
-        self.next_use = None
         self.count = 0
+        self.next_use = None
 
-    def redefine(self, process: Process): #Substitui as propriedades da moldura com as de outra página
+    def redefine(self, process: Process):
+        """
+        Atribui uma nova página a esta moldura, atualizando seus metadados.
+
+        Args:
+            process (Process): O processo cuja página será carregada nesta moldura.
+        """
         self.page = process.page_sequence[0]
         self.time_load = process.last_clock
         self.last_use = process.last_clock
         self.pid = process.pid
-        self.count = 0
+        self.count = 0                      # NFU
+        self.r_bit = 1                      # NFU
         self.next_use = process.page_sequence[1:].index(self.page) if self.page in process.page_sequence[1:] else float('inf')
-
-    
+        
+# ==============================================================================
+# Classe Principal do Gerenciador de Memória
+# ==============================================================================
 
 
 class MemoryManager:
-    """Classe responsável por gerenciar a memória."""
+    """
+        Simula o Gerenciador de Memória de um Sistema Operacional.
+
+        Esta classe orquestra a alocação de páginas em molduras, lida com faltas de página
+        (page faults), e implementa diferentes algoritmos de substituição de página
+        para decidir qual página remover da memória quando ela está cheia.
+        """
     def __init__(self, policy: str, memorySize: int, pageSize: int, maxMemoryAllocationPercent: float, algSubstituicao: str):
-        self.algSubstituicao = algSubstituicao # FIFO, LRU (Least Recently Used), NFU (Not Frequently Used), optimal
-        self.memoryPolicy = MemoryPolicy(policy) # Política de memória: local ou global
-        self.memorySize = int(memorySize) # Tamanho total da memória
-        self.pageSize = int(pageSize) # Tamanho de cada página
+        """
+        Inicializa o Gerenciador de Memória com os parâmetros da simulação.
+
+        Args:
+            policy (str): A política de memória ('local' ou 'global').
+            memorySize (str): O tamanho total da memória física em bytes.
+            pageSize (str): O tamanho de cada página/moldura em bytes.
+            maxMemoryAllocationPercent (str): O percentual máximo de memória que um processo pode usar.
+            algSubstituicao (str): O algoritmo de substituição de página a ser usado ('FIFO', 'LRU', 'NFU', 'optimal').
+        """
+        self.algSubstituicao = algSubstituicao          # FIFO, LRU (Least Recently Used), NFU (Not Frequently Used), optimal
+        self.memoryPolicy = MemoryPolicy(policy)        # Política de memória: local ou global
+        self.memorySize = int(memorySize)               # Tamanho total da memória
+        self.pageSize = int(pageSize)                   # Tamanho de cada página
         self.maxMemoryAllocationPercent = float(maxMemoryAllocationPercent) # Porcentagem máxima de alocação de memória por processo
         self.memory: list[Moldura] = [Moldura(i) for i in range(self.memorySize // self.pageSize)] # Criação das instâncias de molduras de memória
-        self.processes: list[Process] | None = None  # Será feita uma cópia da lista de processos do escalonador
-        self.subst = 0 # Contador de substituições
+        self.processes: list[Process] | None = None     # Será feita uma cópia da lista de processos do escalonador
+        self.subst = 0                                  # Contador de substituições
 
     def FIFO_INFO(self, frame: Moldura): # informações específicas do algoritmo FIFO
         return f"| Tempo de carga: {frame.time_load}"
@@ -107,8 +155,11 @@ class MemoryManager:
     def LRU_INFO(self, frame: Moldura): # informações específicas do algoritmo LRU
         return f"| Último uso: {frame.last_use}"
     
-    def NFU_INFO(self, frame: Moldura): # informações específicas do algoritmo NFU
-        return f"| Contagem de hits: {frame.count}"
+    def NFU_INFO(self, frame: Moldura): 
+        if frame.page is not None:
+            # Exibe o contador em decimal e em binário de 8 bits
+            return f"| Contador: {frame.count} ({frame.count:08b})"
+        return ""
     
     def optimal_INFO(self, frame: Moldura): # informações específicas do algoritmo Ótimo
         if frame.next_use is None:
@@ -117,45 +168,40 @@ class MemoryManager:
             return "| Próxima vez a ser utilizado: Nunca"
         return f"| Próxima vez a ser utilizado: {frame.next_use}"
     
-    # Usado para NRU
-    def reset_r_bits(self):
-        """Zera o bit de referência (R) de todas as molduras na memória."""
-        for frame in self.memory:
-            if frame.page is not None:
-                frame.r_bit = 0
-    
     def accessPage(self, process: Process): # Tenta acessar a página atual do processo, ou insere na memória caso n esteja
         self.update_next_use(process)
         if not process.page_sequence:
             return
-        page = process.page_sequence[0] # Página atual
-        if not process.isPageInTable(): # Page fault
-            self.insertPage(process)        # Tenta inserir a página na memória
-        else: # Page hit
+        page = process.page_sequence[0]         # Página atual
+        if not process.isPageInTable():         # Page fault
+            self.insertPage(process)            # Tenta inserir a página na memória
+        else:                                   # Page hit
             frame_id = process.pageTable[page]
-            self.memory[frame_id].last_use = process.last_clock # Atualiza o último uso da página
-            self.print_memory_state(highlight={frame_id: "hit"}) # destaca a informação de hit
+            self.memory[frame_id].last_use = process.last_clock     # Atualiza o último uso da página
+            #self.memory[frame_id].count += 1                        # Incrementa o contador de NFU
             self.memory[frame_id].r_bit = 1
-        
+            self.print_memory_state(highlight={frame_id: "hit"})    # destaca a informação de hit
+
         if process.page_sequence:
-            process.page_sequence.pop(0)  # Remove a página acessada da sequência de acesso do processo
+            process.page_sequence.pop(0)        # Remove a página acessada da sequência de acesso do processo
 
     def findEmptyFrame(self):
         for frame in self.memory:
             if frame.page is None: return frame.id
         return -1
         
-    def insertPage(self, process: Process): # Insere a página do processo na memória, fazendo substituição se necessário
-        empty_frame = self.findEmptyFrame() # Procura um espaço vazio ou retorna -1
-        if (process.limit_reached()):  # Verifica se o processo já atingiu o limite de páginas alocadas
+    def insertPage(self, process: Process):     # Insere a página do processo na memória, fazendo substituição se necessário
+        empty_frame = self.findEmptyFrame()     # Procura um espaço vazio ou retorna -1
+        if (process.limit_reached()):           # Verifica se o processo já atingiu o limite de páginas alocadas
             getattr(self, self.algSubstituicao)(process, MemoryPolicy.LOCAL) # substituição
             self.subst += 1 
         else:
             page = process.page_sequence[0] 
-            if (empty_frame != -1): # Se houver espaço vazio na memória
-                process.add_to_page_table(page, empty_frame) # Adiciona a página e a moldura na tabela de páginas do processo
-                self.memory[empty_frame].redefine(process) # define as propriedades da moldura com as do processo
-                self.print_memory_state(highlight={empty_frame: "add"}) # destaca a informação de adição
+            if (empty_frame != -1):             # Se houver espaço vazio na memória
+                # print(f"Existe espaço na memória, referenciando a página {page} do processo {process.pid} na moldura {empty_frame}. ALG: {self.algSubstituicao}")
+                process.add_to_page_table(page, empty_frame)    # Adiciona a página e a moldura na tabela de páginas do processo
+                self.memory[empty_frame].redefine(process)      # Define as propriedades da moldura com as do processo
+                self.print_memory_state(highlight={empty_frame: "add"}) # Destaca a informação de adição
             else: 
                 self.subst += 1
                 policy = MemoryPolicy.LOCAL if self.memoryPolicy == MemoryPolicy.LOCAL and process.havePagesInTable() else MemoryPolicy.GLOBAL
@@ -176,9 +222,22 @@ class MemoryManager:
         frame.redefine(process)
         process.add_to_page_table(process.page_sequence[0], frame.id)
 
+    def envelhecer_contadores(self):
+        """Implementa a técnica de Envelhecimento (Aging).
+        Periodicamente, desloca o contador para a direita e adiciona o R-bit.
+        """
+        for frame in self.memory:
+            if frame.page is not None:
+                # 1. Desloca o contador 1 bit para a direita (envelhece)
+                frame.count >>= 1
+                # 2. Adiciona o R-bit ao bit mais significativo (assumindo contador de 8 bits)
+                frame.count |= (frame.r_bit << 7)
+                # 3. Zera o R-bit para o próximo ciclo
+                frame.r_bit = 0
+    
     def print_memory_state(  # Método para exibir o estado atual da memória (FEITO COM O PRIMO COPILOT)
     self, 
-    delay: float = 0.01, 
+    delay: float = 1,     # ------------------------------------ ALTERE A VELOCIDADE AQUI e.g 1 -------------------------------------------
     highlight: dict[int, str] = None,
     ):
     # highlight: {frame_id: "add"|"hit"|"remove"}
@@ -188,7 +247,7 @@ class MemoryManager:
             "remove": "\033[91m",  # Vermelho
             "reset": "\033[0m"
         }
-        os.system('clear')
+        os.system('cls' if os.name == 'nt' else 'clear')
         print(f"Algoritmo: {self.algSubstituicao} | Política: {self.memoryPolicy.value.upper()}")
         print("Estado atual das molduras de memória:")
         print("-" * 40)
@@ -224,33 +283,30 @@ class MemoryManager:
         self.change_page(process, lru)
         self.print_memory_state(highlight={lru.id: "add"})
 
-    
-    def NFU(self, process: Process, policy: MemoryPolicy): # Implementando NFU (Not Frequently Used)
-        # Define o escopo de frames a serem considerados para substituição
-        aging_value = 1
+        
+    def NFU(self, process: Process, policy: MemoryPolicy): 
         candidate_frames: list[Moldura]
         if policy == MemoryPolicy.LOCAL:
             candidate_frames = self.get_local_frames(process)
         else: # GLOBAL
             candidate_frames = [frame for frame in self.memory if frame.page is not None]
 
-        nfu_candidate_count = float("inf")
-        victim: Moldura = None
-        
-        for frame in candidate_frames:
-            if frame.count < nfu_candidate_count:
-                victim = frame
+        # Encontra a(s) página(s) com o menor contador de envelhecimento
+        min_count = min(candidate_frames, key=lambda frame: frame.count).count
+        lowest_counter_frames = [frame for frame in candidate_frames if frame.count == min_count]
 
-        # Envelhecimento
-        for frame in candidate_frames:
-            if frame != victim and frame.count != 0:
-                frame.count -= aging_value
-        # self.print_memory_state(highlight={victim.id: "remove"}) # Descomente para visualização
-        if victim:
-            self.change_page(process, victim)
-        # self.print_memory_state(highlight={victim.id: "add"}) # Descomente para visualização
+        victim: Moldura
+        # Se há empate no menor contador, desempata pelo menor ID de PÁGINA, como no enunciado
+        # (O enunciado diz ID, o que pode ser ambíguo. ID de página é mais lógico que ID de moldura)
+        victim = min(lowest_counter_frames, key=lambda frame: frame.page)
         
         
+        
+        self.print_memory_state(highlight={victim.id: "remove"})
+        self.change_page(process, victim)
+        self.print_memory_state(highlight={victim.id: "add"})  
+        
+        #self.envelhecer_contadores()
     
     def optimal(self, process: Process, policy: MemoryPolicy): # Ótimo
         if policy == MemoryPolicy.LOCAL: # Define quais molduras terá acesso dependendo da política
@@ -258,16 +314,16 @@ class MemoryManager:
         else:
             frames = self.memory
 
-        frame_to_replace = max(frames, key=lambda f: f.next_use) # Define a variavel como a moldura com maior next_use (quando será utilizada novamente)
+        frame_to_replace = max(frames, key=lambda f: f.next_use)
 
-        self.print_memory_state(highlight={frame_to_replace.id: "remove"}) # Imprime log de remoção de pagina
-        self.change_page(process, frame_to_replace)                        # Substitui a pagina da moldura
-        self.print_memory_state(highlight={frame_to_replace.id: "add"})    # Imprime log de adição de pagina
+        self.print_memory_state(highlight={frame_to_replace.id: "remove"})
+        self.change_page(process, frame_to_replace)
+        self.print_memory_state(highlight={frame_to_replace.id: "add"})
 
-    def update_next_use(self, process: Process):    # Função para atualizar quando cada pagina será utilizada
+    def update_next_use(self, process: Process):
         future_accesses = process.page_sequence
-        for frame in self.get_local_frames(process):    # É preciso atualizar apenas a do processo que está sendo executado, independente da política
+        for frame in self.get_local_frames(process):
             try:
-                frame.next_use = future_accesses.index(frame.page) # Atualiza com base na sequencia
+                frame.next_use = future_accesses.index(frame.page)
             except ValueError:
-                frame.next_use = float('inf') # Se não aparece na sequencia, define como infinito, significando que não será utilizada
+                frame.next_use = float('inf')

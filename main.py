@@ -1,6 +1,11 @@
 #Bloco principal
 from escalonador import Escalonador
 
+"""
+    Para alterar a velocidade que as informações são mostradas no terminal altere a variável delay na linha 240 do arquivo memoryManager.py
+    Alunos: Gabriel Silva - 162581, Felipe Fagundes- 162566, Matheus Pimenta - 162590 e Pedro Caurio 162564  
+"""
+
 def showResult(subst: dict):
     optimal = subst.pop("optimal")
     best_key = min(subst, key=subst.get)
